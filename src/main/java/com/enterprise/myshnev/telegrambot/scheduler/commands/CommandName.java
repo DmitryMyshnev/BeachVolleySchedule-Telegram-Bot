@@ -2,7 +2,7 @@ package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 public enum CommandName {
     START("/start"),
-    STOP("/stop"),
+    SUPER_ADMIN("/superadmin"),
     HELP("/help"),
     NO("/no"),
     STAT("/stat");

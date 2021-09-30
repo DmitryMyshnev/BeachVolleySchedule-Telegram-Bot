@@ -1,14 +1,15 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises;
 
-import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
-@Service
-public class SendMessageService {
-    private final TelegramBot telegramBot;
-@Autowired
-    public SendMessageService(TelegramBot telegramBot) {
-        this.telegramBot = telegramBot;
-    }
+import java.util.List;
+
+public interface SendMessageService {
+    void sendMessage(String chatId, String message);
+
+    void sendMessage(String chatId, List<String> message);
+
+    void sendMessage(String chatId, String message, InlineKeyboardMarkup keyBoard);
+
+    void editMessage(String chatId, String messageId, String message, InlineKeyboardMarkup keyBoard);
 }
