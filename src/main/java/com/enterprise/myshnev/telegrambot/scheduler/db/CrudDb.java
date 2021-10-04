@@ -13,4 +13,6 @@ public interface CrudDb<T> {
     String update(String id,String arg, String value);
 
     String delete(String id);
+
+    Integer count();
 }

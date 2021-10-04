@@ -37,7 +37,7 @@ public class UserTable implements CrudDb<TelegramUser> {
                 ConnectionDb.executeUpdate(query, config);
             } catch (SQLException e) {
                 e.printStackTrace();
-                return FAIL.getStatus();
+                return e.getSQLState();
             }
             return OK.getStatus();
         } else
@@ -76,7 +76,7 @@ public class UserTable implements CrudDb<TelegramUser> {
             return OK.getStatus();
         } catch (SQLException e) {
             e.printStackTrace();
-            return FAIL.getStatus();
+            return e.getSQLState();
         }
     }
 
@@ -88,7 +88,7 @@ public class UserTable implements CrudDb<TelegramUser> {
             return OK.getStatus();
         } catch (SQLException e) {
             e.printStackTrace();
-            return FAIL.getStatus();
+            return e.getSQLState();
         }
     }
 
@@ -117,4 +117,18 @@ public class UserTable implements CrudDb<TelegramUser> {
         }
     }
 
+    @Override
+    public Integer count() {
+        String query = String.format(COUNT.getQuery(), TABLE);
+        ResultSet res = ConnectionDb.executeQuery(query, config);
+        try {
+            while (res.next()){
+                return  res.getInt("total");
+            }
+        }
+      catch (SQLException e){
+            e.printStackTrace();
+      }
+        return 0;
+    }
 }

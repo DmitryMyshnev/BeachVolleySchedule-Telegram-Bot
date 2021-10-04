@@ -34,7 +34,7 @@ public class AdminTable implements CrudDb<TelegramUser> {
                 ConnectionDb.executeUpdate(query, config);
                 return OK.getStatus();
             } catch (SQLException e) {
-                e.printStackTrace();
+               return FAIL.getStatus();
             }
         }
         return EXIST.getStatus();
@@ -92,7 +92,6 @@ public class AdminTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query, config);
             return OK.getStatus();
         } catch (SQLException e) {
-            e.printStackTrace();
             return FAIL.getStatus();
         }
     }
@@ -104,8 +103,22 @@ public class AdminTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query, config);
             return OK.getStatus();
         } catch (SQLException e) {
-            e.printStackTrace();
             return FAIL.getStatus();
         }
+    }
+
+    @Override
+    public Integer count() {
+        String query = String.format(COUNT.getQuery(), TABLE);
+        ResultSet res = ConnectionDb.executeQuery(query, config);
+        try {
+            while (res.next()){
+                return  res.getInt("total");
+            }
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
+        return 0;
     }
 }

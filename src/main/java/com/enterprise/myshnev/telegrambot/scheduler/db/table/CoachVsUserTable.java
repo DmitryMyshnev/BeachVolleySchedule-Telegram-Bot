@@ -86,4 +86,9 @@ public class CoachVsUserTable implements CrudDb<CoachVsUserJoin> {
     public String delete(String id) {
         return null;
     }
+
+    @Override
+    public Integer count() {
+        return null;
+    }
 }

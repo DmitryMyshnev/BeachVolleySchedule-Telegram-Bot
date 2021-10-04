@@ -16,4 +16,5 @@ public interface WorkoutRepository {
 
     String delete(String id,CrudDb table);
 
+    Integer count();
 }

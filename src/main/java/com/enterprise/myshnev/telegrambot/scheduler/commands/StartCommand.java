@@ -1,12 +1,30 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
+
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
+
+import com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.EXIST;
+import java.sql.Time;
+import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.util.Date;
+import java.util.Formatter;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
+
+import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
 
 public class StartCommand implements Command {
     private final SendMessageService sendMessageService;
@@ -20,17 +38,32 @@ public class StartCommand implements Command {
 
     @Override
     public void execute(Update update) {
-        String chatId = update.getMessage().getChatId().toString();
-        String firstName = update.getMessage().getFrom().getFirstName();
-        String lastName = update.getMessage().getFrom().getLastName();
-        TelegramUser user = new TelegramUser(chatId,firstName,lastName);
-      if(!userService.save(user,new UserTable()).equals(EXIST.getStatus())){
-          message = "Привет";
-      }
-      else {
-          message = "Вы уже зарегистрированны";
-      }
-        sendMessageService.sendMessage(chatId,message);
+        TelegramUser user = new TelegramUser(getChatId(update), getFirstName(update), getLastName(update));
+        userService.findByChatId(getChatId(update), new CoachTable()).map(TelegramUser.class::cast).ifPresentOrElse(coach -> {
+            message = "Привет, " + coach.getFirstName() + "! ";
+            sendMessageService.sendMessage(coach.getChatId(), message);
+        }, () -> {
+            String stat = userService.save(user, new UserTable());
+            if (!stat.equals(EXIST.getStatus())) {
+                List<TelegramUser> coach = userService.findAll(new CoachTable()).stream().map(us -> (TelegramUser) us).collect(Collectors.toList());
+                message = "Привет, " + getFirstName(update) + "! Этот бот поможет тебе записываться на тренировки к тренеру: \n " +
+                        coach.get(0).getFirstName() + " " +
+                        coach.get(0).getLastName() +
+                        "\n /help - посмотреть инструцию к боту\n" +
+                        "/workout - посмотреть рассписание тренировок";
+                sendMessageService.sendMessage(getChatId(update), message);
+            } else {
+                message = "Вы уже зарегистрированы";
+                sendMessageService.sendMessage(getChatId(update), message);
+            }
+        });
+    }
+    public void time(){
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+        formatter.format(System.currentTimeMillis());
 
     }
+
+
+
 }

@@ -16,4 +16,6 @@ public interface UserService {
     String update(CrudDb table,String chatId, String arg,String value);
 
     String delete(String chatId,CrudDb table);
+
+    Integer count(CrudDb table);
 }

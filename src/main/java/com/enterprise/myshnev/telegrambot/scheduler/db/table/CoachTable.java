@@ -108,4 +108,9 @@ public class CoachTable implements CrudDb<TelegramUser> {
             return FAIL.getStatus();
         }
     }
+
+    @Override
+    public Integer count() {
+        return null;
+    }
 }

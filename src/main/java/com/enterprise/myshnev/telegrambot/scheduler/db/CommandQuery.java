@@ -5,7 +5,8 @@ public enum CommandQuery {
     SELECT_FROM("SELECT * FROM %s WHERE %s = '%s';"),
     UPDATE("UPDATE %s SET %s=%s WHERE %s = '%s';"),
     SELECT_ALL("SELECT * FROM %s"),
-    DELETE("DELETE FROM %s WHERE %s='%s'");
+    DELETE("DELETE FROM %s WHERE %s='%s'"),
+    COUNT("SELECT count(*) AS total FROM %s");
     private String query;
 
     CommandQuery(String query) {

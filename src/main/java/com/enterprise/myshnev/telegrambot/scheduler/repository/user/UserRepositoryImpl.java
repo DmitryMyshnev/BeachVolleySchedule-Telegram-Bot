@@ -25,6 +25,11 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Integer count(CrudDb table) {
+        return table.count();
+    }
+
+    @Override
     public String update(CrudDb table,String id,String arg,String value) {
         return table.update(id,arg,value);
     }

@@ -39,4 +39,9 @@ public class UserServiceImpl implements UserService{
     public String delete(String chatId,CrudDb table) {
         return userRepository.delete(chatId,table);
     }
+
+    @Override
+    public Integer count(CrudDb table) {
+        return userRepository.count(table);
+    }
 }

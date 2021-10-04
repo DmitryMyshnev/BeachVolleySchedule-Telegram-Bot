@@ -31,4 +31,9 @@ public class WorkoutRepositoryImpl implements WorkoutRepository{
     public String delete(String id, CrudDb table) {
         return null;
     }
+
+    @Override
+    public Integer count() {
+        return null;
+    }
 }

@@ -16,4 +16,6 @@ public interface UserRepository {
     String update(CrudDb table,String id,String arg,String value);
 
     String delete(String id,CrudDb table);
+
+    Integer count(CrudDb table);
 }
