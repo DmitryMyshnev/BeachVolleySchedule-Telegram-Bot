@@ -7,6 +7,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InlineKeyBoard {
+     InlineKeyboardButton button;
+     List<InlineKeyboardButton> row;
+     List<List<InlineKeyboardButton>> rowList;
+     InlineKeyboardMarkup keyboard;
+
+    public InlineKeyBoard() {
+
+        rowList = new ArrayList<>();
+        keyboard = new InlineKeyboardMarkup();
+    }
+
+    public  InlineKeyboardMarkup addButton(String text, String callback) {
+        row = new ArrayList<>();
+        button = new InlineKeyboardButton();
+        button.setText(text);
+        button.setCallbackData(callback);
+        row.add(button);
+        rowList.add(row);
+        keyboard.setKeyboard(rowList);
+        return keyboard;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -28,7 +50,7 @@ public class InlineKeyBoard {
             button.setText(text);
             button.setCallbackData(callback);
             row.add(button);
-            if(newRow) {
+            if (newRow) {
                 rowList.add(row);
                 row = new ArrayList<>();
             }
@@ -44,8 +66,8 @@ public class InlineKeyBoard {
         }
 
         public InlineKeyboardMarkup create() {
-             rowList.add(row);
-             keyboard.setKeyboard(rowList);
+            rowList.add(row);
+            keyboard.setKeyboard(rowList);
             return keyboard;
         }
     }

@@ -6,13 +6,19 @@ import java.util.List;
 import java.util.Optional;
 
 public interface WorkoutService {
-    void save(Object workout, CrudDb table);
+    String addTable(String name, CrudDb newTable);
 
-    Optional<Object> findByChatId(String chatId, CrudDb table);
+    void save(String tableName,Object workout, CrudDb table);
 
-    List<Object> findAll(CrudDb table);
+    Optional<Object> findByChatId(String tableName,String chatId, CrudDb table);
 
-    String update(CrudDb table,String chatId, String arg,String value);
+    List<Object> findBy(String tableName,String column,Object arg, CrudDb table);
 
-    String delete(String chatId,CrudDb table);
+    List<Object> findAll(String tableName,CrudDb table);
+
+    String update(CrudDb table,String tableName,String chatId, String arg,String value);
+
+    String delete(String tableName,String chatId,CrudDb table);
+
+    Integer count(String tableName,CrudDb table);
 }

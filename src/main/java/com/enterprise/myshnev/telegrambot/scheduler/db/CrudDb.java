@@ -4,15 +4,19 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CrudDb<T> {
-    String insertIntoTable(T type);
+    String addTable(String tableName);
 
-    List<T> findAll();
+    String insertIntoTable(String tableName,T type);
 
-    Optional<T> findById(String id);
+    List<T> findAll(String tableName);
 
-    String update(String id,String arg, String value);
+    Optional<T> findById(String tableName,String id);
 
-    String delete(String id);
+   List<T> findBy(String tableName, String column, Object arg);
 
-    Integer count();
+    String update(String tableName,String chatId,String arg, String value);
+
+    String delete(String tableName,String id);
+
+    Integer count(String tableName);
 }

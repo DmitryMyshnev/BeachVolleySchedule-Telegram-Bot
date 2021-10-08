@@ -16,35 +16,49 @@ import java.sql.Statement;
 import java.util.Properties;
 
 public class ConnectionDb {
+    private final SQLiteConfig config;
+    private final String pathDbConnect;
+    private static Connection connect;
 
-    public static void executeUpdate(String query, SQLiteConfig config) throws SQLException {
-            Connection connect = getConnection(config);
+    public ConnectionDb() {
+        pathDbConnect = getPassFromFileConfig();
+        config = new SQLiteConfig();
+        config.setSharedCache(true);
+        connect =  getConnection(config,pathDbConnect);
+    }
+
+    public static void executeUpdate(String query) throws SQLException {
             Statement statement = connect.createStatement();
             statement.executeUpdate(query);
             statement.close();
-            connect.close();
+            //connect.close();
     }
 
-    public static ResultSet executeQuery(String query, SQLiteConfig config) {
+    public static ResultSet executeQuery(String query) {
         try {
-            ResultSet res = getConnection(config).createStatement().executeQuery(query);
+            ResultSet res = connect.createStatement().executeQuery(query);
             return res;
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
         }
     }
-
-    private static Connection getConnection(SQLiteConfig config) {
+    public static void execute(String query) throws SQLException {
+        Statement statement = connect.createStatement();
+        statement.execute(query);
+        statement.close();
+       // connect.close();
+    }
+    private  Connection getConnection(SQLiteConfig config,String path) {
         try {
             Class.forName("org.sqlite.JDBC");
-            return config.createConnection(getPassFromFileConfig() );
+            return config.createConnection(path);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
-    private static String getPassFromFileConfig() {
+    private  String getPassFromFileConfig() {
         Properties properties = new Properties();
         try {
             File file = ResourceUtils.getFile("classpath:application.properties");

@@ -1,7 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
-import com.enterprise.myshnev.telegrambot.scheduler.servises.SendMessageService;
-import com.enterprise.myshnev.telegrambot.scheduler.servises.SendMessageServiceImpl;
+import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 public class SuperAdmin implements Command{

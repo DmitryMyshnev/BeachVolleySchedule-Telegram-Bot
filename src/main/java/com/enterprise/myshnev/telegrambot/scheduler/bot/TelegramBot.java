@@ -1,13 +1,15 @@
 package com.enterprise.myshnev.telegrambot.scheduler.bot;
 
 import com.enterprise.myshnev.telegrambot.scheduler.commands.CommandContainer;
-import com.enterprise.myshnev.telegrambot.scheduler.servises.SendMessageServiceImpl;
+import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
+import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageServiceImpl;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
+import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.*;
+
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -24,8 +26,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
 
     @Autowired
-    public TelegramBot(UserService userService) {
-        commandContainer = new CommandContainer(new SendMessageServiceImpl(this), userService);
+    public TelegramBot(UserService userService, WorkoutService workoutService) {
+        commandContainer = new CommandContainer(new SendMessageServiceImpl(this), userService,workoutService);
+        new ConnectionDb();
     }
 
     @Override
@@ -50,8 +53,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             }
         }
         if (update.hasCallbackQuery()) {
-            message = getText(update);
-           commandIdentifier = getCallbackQuery(update);
+           commandIdentifier = getCallbackQuery(update).split("/")[0];
         }
         if(update.hasMessage() && update.getMessage().hasContact()){
             System.out.println();

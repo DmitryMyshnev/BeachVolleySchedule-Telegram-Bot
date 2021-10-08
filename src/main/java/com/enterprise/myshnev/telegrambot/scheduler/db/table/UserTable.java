@@ -4,7 +4,7 @@ import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
-
+import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
 import org.sqlite.SQLiteConfig;
 
 import java.sql.*;
@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-
-import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
 public class UserTable implements CrudDb<TelegramUser> {
     private static final String TABLE = "Users";
     private static final String CHAT_ID = "chat_id";
@@ -22,19 +20,16 @@ public class UserTable implements CrudDb<TelegramUser> {
     private static final String ADMIN = "admin";
     private static final String COACH = "coach";
 
-    private SQLiteConfig config;
-
     public UserTable() {
-        config = new SQLiteConfig();
-        config.setSharedCache(true);
+
     }
 
     @Override
-    public String insertIntoTable(TelegramUser telegramUser) {
-        if (findById(telegramUser.getChatId()).isEmpty()) {
-            String query = String.format(INSERT_INTO.getQuery(), TABLE, CHAT_ID + "," + FIRST_NAME + "," + LAST_NAME + "," + ADMIN + "," + COACH, telegramUser);
+    public String insertIntoTable(String tableName,TelegramUser telegramUser) {
+        if (findById(tableName,telegramUser.getChatId()).isEmpty()) {
+            String query = String.format(INSERT_INTO.getQuery(), tableName, CHAT_ID + "," + FIRST_NAME + "," + LAST_NAME + "," + ADMIN + "," + COACH, telegramUser);
             try {
-                ConnectionDb.executeUpdate(query, config);
+                ConnectionDb.executeUpdate(query);
             } catch (SQLException e) {
                 e.printStackTrace();
                 return e.getSQLState();
@@ -45,10 +40,10 @@ public class UserTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public Optional<TelegramUser> findById(String id) {
+    public Optional<TelegramUser> findById(String tableName,String id) {
         try {
-            String query = String.format(SELECT_FROM.getQuery(), TABLE, CHAT_ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query, config);
+            String query = String.format(SELECT_FROM.getQuery(), tableName, CHAT_ID, id);
+            ResultSet res = ConnectionDb.executeQuery(query);
             if (res.next()) {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
@@ -57,7 +52,6 @@ public class UserTable implements CrudDb<TelegramUser> {
                 user.setAdmin(res.getBoolean(ADMIN));
                 user.setCoach(res.getBoolean(COACH));
                 res.getStatement().close();
-                res.getStatement().getConnection().close();
                 res.close();
                 return Optional.of(user);
             }
@@ -69,10 +63,15 @@ public class UserTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public String update(String id, String arg, String value) {
-        String query = String.format(UPDATE.getQuery(), TABLE, arg, value, CHAT_ID, id);
+    public List<TelegramUser> findBy(String tableName,String column,Object arg) {
+        return null;
+    }
+
+    @Override
+    public String update(String tableName,String chatId, String arg, String value) {
+        String query = String.format(UPDATE.getQuery(), TABLE, arg, value, CHAT_ID, chatId);
         try {
-            ConnectionDb.executeUpdate(query, config);
+            ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -81,10 +80,10 @@ public class UserTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public String delete(String id) {
+    public String delete(String tableName,String id) {
         String query = String.format(DELETE.getQuery(), TABLE, CHAT_ID, id);
         try {
-            ConnectionDb.executeUpdate(query, config);
+            ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -93,10 +92,10 @@ public class UserTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public List<TelegramUser> findAll() {
+    public List<TelegramUser> findAll(String tableName) {
         try {
-            String query = String.format(SELECT_ALL.getQuery(), TABLE);
-            ResultSet res = ConnectionDb.executeQuery(query, config);
+            String query = String.format(SELECT_ALL.getQuery(), tableName);
+            ResultSet res = ConnectionDb.executeQuery(query);
             List<TelegramUser> list = new ArrayList<>();
             while (res.next()) {
                 TelegramUser user = new TelegramUser();
@@ -108,7 +107,6 @@ public class UserTable implements CrudDb<TelegramUser> {
                 list.add(user);
             }
             res.getStatement().close();
-            res.getStatement().getConnection().close();
             res.close();
             return list;
         } catch (SQLException e) {
@@ -118,9 +116,9 @@ public class UserTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public Integer count() {
-        String query = String.format(COUNT.getQuery(), TABLE);
-        ResultSet res = ConnectionDb.executeQuery(query, config);
+    public Integer count(String tableName) {
+        String query = String.format(COUNT.getQuery(), tableName);
+        ResultSet res = ConnectionDb.executeQuery(query);
         try {
             while (res.next()){
                 return  res.getInt("total");
@@ -130,5 +128,10 @@ public class UserTable implements CrudDb<TelegramUser> {
             e.printStackTrace();
       }
         return 0;
+    }
+
+    @Override
+    public String addTable(String name) {
+        return null;
     }
 }

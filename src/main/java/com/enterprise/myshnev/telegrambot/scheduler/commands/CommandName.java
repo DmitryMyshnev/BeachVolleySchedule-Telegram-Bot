@@ -7,10 +7,11 @@ public enum CommandName {
     PASS_VALID("pass"),
     HELP("/help"),
     GO("/go"),
+    ENJOY("enjoy"),
     VALIDATION("valid"),
     ADD_COACH("add_coach"),
     ADD_WORKOUT("add_workout"),
-    BACK_TO_MENU("back_to_menu");
+    CANCEL("cancel");
     private final String commandName;
 
     CommandName(String commandName) {

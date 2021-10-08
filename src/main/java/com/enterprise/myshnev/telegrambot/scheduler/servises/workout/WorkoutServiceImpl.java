@@ -16,27 +16,42 @@ public class WorkoutServiceImpl implements WorkoutService{
     }
 
     @Override
-    public void save(Object workout, CrudDb table) {
-
+    public String addTable(String name, CrudDb newTable) {
+        return workoutRepository.addTable(name,newTable);
     }
 
     @Override
-    public Optional<Object> findByChatId(String chatId, CrudDb table) {
-        return Optional.empty();
+    public void save(String tableName,Object workout, CrudDb table) {
+       workoutRepository.insertInto(tableName,workout,table);
     }
 
     @Override
-    public List<Object> findAll(CrudDb table) {
-        return null;
+    public Optional<Object> findByChatId(String tableName,String chatId, CrudDb table) {
+        return workoutRepository.findById(tableName,chatId,table);
     }
 
     @Override
-    public String update(CrudDb table, String chatId, String arg, String value) {
-        return null;
+    public List<Object> findBy(String tableName,String column,Object arg, CrudDb table) {
+        return workoutRepository.findBy(tableName,column,arg,table);
     }
 
     @Override
-    public String delete(String chatId, CrudDb table) {
-        return null;
+    public Integer count(String tableName,CrudDb table) {
+        return workoutRepository.count(tableName,table);
+    }
+
+    @Override
+    public List<Object> findAll(String tableName,CrudDb table) {
+        return workoutRepository.findAll(tableName,table);
+    }
+
+    @Override
+    public String update(CrudDb table,String tableName, String chatId, String arg, String value) {
+        return workoutRepository.update(table,tableName,chatId,arg,value);
+    }
+
+    @Override
+    public String delete(String tableName,String chatId, CrudDb table) {
+        return workoutRepository.delete(tableName,chatId,table);
     }
 }

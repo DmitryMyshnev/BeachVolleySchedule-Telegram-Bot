@@ -16,32 +16,37 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public Optional<Object> findByChatId(String chatId,CrudDb table) {
-        return userRepository.findById(chatId,table);
+    public Optional<Object> findByChatId(String tableName,String chatId,CrudDb table) {
+        return userRepository.findById(tableName,chatId,table);
     }
 
     @Override
-    public String save(Object telegramUser, CrudDb table) {
-       return userRepository.insertInto(telegramUser,table);
+    public List<Object> findBy(String tableName,String column,Object arg, CrudDb table) {
+        return userRepository.findBy(tableName,column,arg,table);
     }
 
     @Override
-    public List<Object> findAll(CrudDb table) {
-        return userRepository.findAll(table);
+    public String save(String tableName,Object telegramUser, CrudDb table) {
+       return userRepository.insertInto(tableName,telegramUser,table);
     }
 
     @Override
-    public String update(CrudDb table,String chatId,String arg,String value) {
-        return userRepository.update(table,chatId,arg,value);
+    public List<Object> findAll(String tableName,CrudDb table) {
+        return userRepository.findAll(tableName,table);
     }
 
     @Override
-    public String delete(String chatId,CrudDb table) {
-        return userRepository.delete(chatId,table);
+    public String update(CrudDb table,String tableName,String chatId,String arg,String value) {
+        return userRepository.update(table,tableName,chatId,arg,value);
     }
 
     @Override
-    public Integer count(CrudDb table) {
-        return userRepository.count(table);
+    public String delete(String taleName,String chatId,CrudDb table) {
+        return userRepository.delete(taleName,chatId,table);
+    }
+
+    @Override
+    public Integer count(String tableName,CrudDb table) {
+        return userRepository.count(tableName,table);
     }
 }

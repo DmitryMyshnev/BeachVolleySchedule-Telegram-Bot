@@ -11,40 +11,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.SELECT_ALL;
 
 public class CoachTable implements CrudDb<TelegramUser> {
     private static final String TABLE = "Coach";
     private static final String CHAT_ID = "chat_id";
     private static final String FIRST_NAME = "first_name";
     private static final String LAST_NAME = "last_name";
-    private SQLiteConfig config;
-
+    private static final String ADMIN = "admin";
+    private static final String COACH = "coach";
     public CoachTable() {
-        config = new SQLiteConfig();
-        config.setSharedCache(true);
+
+    }
+    @Override
+    public String addTable(String name) {
+        return null;
     }
 
     @Override
-    public String insertIntoTable(TelegramUser telegramUser) {
-        if (findById(telegramUser.getChatId()).isEmpty()) {
-            String query = String.format(INSERT_INTO.getQuery(), TABLE, CHAT_ID + "," + FIRST_NAME + "," + LAST_NAME, telegramUser.fullName());
-            try {
-                ConnectionDb.executeUpdate(query, config);
-                return OK.getStatus();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return EXIST.getStatus();
+    public String insertIntoTable(String tableName,TelegramUser telegramUser) {
+        return null;
     }
 
     @Override
-    public List<TelegramUser> findAll() {
+    public List findAll(String tableName) {
         try {
-            String query = String.format(SELECT_ALL.getQuery(), TABLE);
-            ResultSet res = ConnectionDb.executeQuery(query, config);
+            String query = String.format(SELECT_ALL.getQuery(), tableName);
+            ResultSet res = ConnectionDb.executeQuery(query);
             List<TelegramUser> list = new ArrayList<>();
             while (res.next()) {
                 TelegramUser user = new TelegramUser();
@@ -54,7 +47,6 @@ public class CoachTable implements CrudDb<TelegramUser> {
                 list.add(user);
             }
             res.getStatement().close();
-            res.getStatement().getConnection().close();
             res.close();
             return list;
         } catch (SQLException e) {
@@ -64,53 +56,27 @@ public class CoachTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public Optional<TelegramUser> findById(String id) {
-        try {
-            String query = String.format(SELECT_FROM.getQuery(), TABLE,CHAT_ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query,config);
-            if (res.next()) {
-                TelegramUser user = new TelegramUser();
-                user.setChatId(res.getString(CHAT_ID));
-                user.setFirstName(res.getString(FIRST_NAME));
-                user.setLastName(res.getString(LAST_NAME));
-                res.getStatement().close();
-                res.getStatement().getConnection().close();
-                res.close();
-                return Optional.of(user);
-            }
-            return Optional.empty();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
+    public Optional findById(String tableName,String id) {
+        return Optional.empty();
     }
 
     @Override
-    public String update(String id, String arg,String value) {
-        String query = String.format(UPDATE.getQuery(), TABLE, arg, value, CHAT_ID, id);
-        try {
-            ConnectionDb.executeUpdate(query, config);
-            return OK.getStatus();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return FAIL.getStatus();
-        }
+    public List findBy(String tableName, String column, Object arg) {
+        return null;
     }
 
     @Override
-    public String delete(String id) {
-        String query = String.format(DELETE.getQuery(), TABLE, CHAT_ID, id);
-        try {
-            ConnectionDb.executeUpdate(query, config);
-            return OK.getStatus();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return FAIL.getStatus();
-        }
+    public String update(String tableName,String chatId, String arg, String value) {
+        return null;
     }
 
     @Override
-    public Integer count() {
+    public String delete(String tableName,String id) {
+        return null;
+    }
+
+    @Override
+    public Integer count(String tableName) {
         return null;
     }
 }

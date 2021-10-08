@@ -7,15 +7,17 @@ import java.util.Optional;
 
 public interface UserRepository {
 
-    String insertInto(Object telegramUser, CrudDb table);
+    String insertInto(String tableName,Object telegramUser, CrudDb table);
 
-    List<Object> findAll(CrudDb table);
+    List<Object> findAll(String tableName,CrudDb table);
 
-    Optional<Object> findById(String id,CrudDb table);
+    Optional<Object> findById(String tableName,String id,CrudDb table);
 
-    String update(CrudDb table,String id,String arg,String value);
+    List<Object> findBy(String tableName,String column,Object arg,CrudDb table);
 
-    String delete(String id,CrudDb table);
+    String update(CrudDb table,String tableName,String chatId,String arg,String value);
 
-    Integer count(CrudDb table);
+    String delete(String taleName,String id,CrudDb table);
+
+    Integer count(String tableName,CrudDb table);
 }

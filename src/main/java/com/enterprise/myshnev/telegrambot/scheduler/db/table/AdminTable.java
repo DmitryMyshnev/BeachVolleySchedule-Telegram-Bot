@@ -19,19 +19,17 @@ public class AdminTable implements CrudDb<TelegramUser> {
     private static final String CHAT_ID = "chat_id";
     private static final String FIRST_NAME = "first_name";
     private static final String LAST_NAME = "last_name";
-    private SQLiteConfig config;
 
     public AdminTable() {
-        config = new SQLiteConfig();
-        config.setSharedCache(true);
+
     }
 
     @Override
-    public String insertIntoTable(TelegramUser telegramUser) {
-        if (findById(telegramUser.getChatId()).isEmpty()) {
-            String query = String.format(INSERT_INTO.getQuery(), TABLE, CHAT_ID + "," + FIRST_NAME + "," + LAST_NAME, telegramUser.fullName());
+    public String insertIntoTable(String tableName,TelegramUser telegramUser) {
+        if (findById(tableName,telegramUser.getChatId()).isEmpty()) {
+            String query = String.format(INSERT_INTO.getQuery(), tableName, CHAT_ID + "," + FIRST_NAME + "," + LAST_NAME, telegramUser.fullName());
             try {
-                ConnectionDb.executeUpdate(query, config);
+                ConnectionDb.executeUpdate(query);
                 return OK.getStatus();
             } catch (SQLException e) {
                return FAIL.getStatus();
@@ -41,10 +39,10 @@ public class AdminTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public List<TelegramUser> findAll() {
+    public List<TelegramUser> findAll(String tableName) {
         try {
             String query = String.format(SELECT_ALL.getQuery(), TABLE);
-            ResultSet res = ConnectionDb.executeQuery(query, config);
+            ResultSet res = ConnectionDb.executeQuery(query);
             List<TelegramUser> list = new ArrayList<>();
             while (res.next()) {
                 TelegramUser user = new TelegramUser();
@@ -54,7 +52,6 @@ public class AdminTable implements CrudDb<TelegramUser> {
                 list.add(user);
             }
             res.getStatement().close();
-            res.getStatement().getConnection().close();
             res.close();
             return list;
         } catch (SQLException e) {
@@ -64,17 +61,16 @@ public class AdminTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public Optional<TelegramUser> findById(String id) {
+    public Optional<TelegramUser> findById(String tableName,String id) {
         try {
-            String query = String.format(SELECT_FROM.getQuery(), TABLE,CHAT_ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query,config);
+            String query = String.format(SELECT_FROM.getQuery(), tableName,CHAT_ID, id);
+            ResultSet res = ConnectionDb.executeQuery(query);
             if (res.next()) {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
                 user.setFirstName(res.getString(FIRST_NAME));
                 user.setLastName(res.getString(LAST_NAME));
                 res.getStatement().close();
-                res.getStatement().getConnection().close();
                 res.close();
                 return Optional.of(user);
             }
@@ -86,10 +82,15 @@ public class AdminTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public String update(String id, String arg, String value) {
-        String query = String.format(UPDATE.getQuery(), TABLE, arg, value, CHAT_ID, id);
+    public List<TelegramUser> findBy(String tableName,String column, Object arg) {
+        return null;
+    }
+
+    @Override
+    public String update(String tableName,String chatId, String arg, String value) {
+        String query = String.format(UPDATE.getQuery(), tableName, arg, value, CHAT_ID, chatId);
         try {
-            ConnectionDb.executeUpdate(query, config);
+            ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
             return FAIL.getStatus();
@@ -97,10 +98,10 @@ public class AdminTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public String delete(String id) {
-        String query = String.format(DELETE.getQuery(), TABLE, CHAT_ID, id);
+    public String delete(String tableName,String id) {
+        String query = String.format(DELETE.getQuery(), tableName, CHAT_ID, id);
         try {
-            ConnectionDb.executeUpdate(query, config);
+            ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
             return FAIL.getStatus();
@@ -108,9 +109,9 @@ public class AdminTable implements CrudDb<TelegramUser> {
     }
 
     @Override
-    public Integer count() {
-        String query = String.format(COUNT.getQuery(), TABLE);
-        ResultSet res = ConnectionDb.executeQuery(query, config);
+    public Integer count(String tableName) {
+        String query = String.format(COUNT.getQuery(), tableName);
+        ResultSet res = ConnectionDb.executeQuery(query);
         try {
             while (res.next()){
                 return  res.getInt("total");
@@ -120,5 +121,10 @@ public class AdminTable implements CrudDb<TelegramUser> {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    @Override
+    public String addTable(String name) {
+        return null;
     }
 }

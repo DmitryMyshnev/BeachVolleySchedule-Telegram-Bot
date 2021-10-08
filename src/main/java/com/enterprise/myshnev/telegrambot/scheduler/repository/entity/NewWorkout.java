@@ -7,6 +7,14 @@ public class NewWorkout {
     private String userId;
     private String firstName;
     private String lastName;
-    private String timeWorkout;
     private boolean reserve;
+
+    @Override
+    public String toString() {
+        return
+                "'" + userId + "'" +
+                ", '" + firstName + "'" +
+                ", '" + lastName + "'" +
+                ", " + reserve ;
+    }
 }
