@@ -141,7 +141,7 @@ public class AddUserToWorkoutButton implements Command {
 
     private void sendMessageForAllUsers() {
         userService.findAll(USERS.getTableName(), new UserTable()).stream().map(u -> (TelegramUser) u).collect(Collectors.toList()).forEach(user -> {
-            if(!user.isActive()) {
+            if(user.isActive()) {
                 if (sendMessageService.getData(user.getChatId()).isEmpty()) {
                     String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться ";
                     board = builder().add(text, callback).create();
@@ -163,9 +163,7 @@ public class AddUserToWorkoutButton implements Command {
                     }
                     sendMessageService.getData(user.getChatId()).stream()
                             .filter(f -> (f.getDayOfWeek().equals(dayOfWeek) && f.getTimeWorkout().equals(timeOfWorkout)))
-                            .findFirst().ifPresent(p -> {
-                        p.setMessage(message);
-                    });
+                            .findFirst().ifPresent(p -> p.setMessage(message));
 
                     sendMessageService.editMessage(user.getChatId(), messageId, String.format(message, getSymbol(freePlaces)), board);
                 }

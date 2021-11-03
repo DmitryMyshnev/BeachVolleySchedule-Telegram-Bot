@@ -32,7 +32,7 @@ public class CancelWorkoutCommand implements Command {
     public void execute(Update update) {
         String dayOfWeek = Objects.requireNonNull(getCallbackQuery(update)).split("/")[1];
         String time = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
-        String message = "❗❗❗Вы действительно хотите отменить тренировку?";
+        String message = "❗Вы действительно хотите отменить тренировку в " + dayOfWeek + " в " + time + "?";
         board = builder().add("Да", "confirm/yes/" + dayOfWeek + "/" + time)
                 .add("Нет", "confirm/no/" + dayOfWeek + "/" + time).create();
         Long countUser = workoutService.findAll(dayOfWeek + time, newWorkoutTable).stream()

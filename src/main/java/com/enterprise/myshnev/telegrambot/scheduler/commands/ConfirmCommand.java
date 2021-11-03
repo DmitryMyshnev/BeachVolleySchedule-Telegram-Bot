@@ -13,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.text.SimpleDateFormat;
 
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ public class ConfirmCommand implements Command {
         this.userService = userService;
         this.workoutService = workoutService;
         newWorkoutTable = new NewWorkoutTable();
-        formatOfDay = new SimpleDateFormat("E d MMM");
+        formatOfDay = new SimpleDateFormat("E d MMM",new Locale("ru"));
         userTable = new UserTable();
         workoutsTable = new WorkoutsTable();
     }
@@ -87,7 +88,7 @@ public class ConfirmCommand implements Command {
                     workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "0");
                 });
             } else {
-                if (!user.isActive()) {
+                if (user.isActive()) {
                     sendMessageService.getData(user.getChatId()).stream()
                             .filter(f -> (f.getTimeWorkout().equals(timeOfWorkout)))
                             .findFirst().ifPresent(w -> {

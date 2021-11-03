@@ -23,6 +23,7 @@ import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoa
 
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -80,6 +81,7 @@ public class StartCommand implements Command {
                             }else {
                                 userService.update(userTable, USERS.getTableName(), getChatId(update),"active","1");
                                 message = "Уведомления включены.";
+                                findActiveWorkout(getChatId(update));
                             }
                         });
                 sendMessageService.sendMessage(getChatId(update), message, null);
@@ -89,8 +91,7 @@ public class StartCommand implements Command {
     }
 
     private void findActiveWorkout(String chatId) {
-        String day = new SimpleDateFormat("E").format(System.currentTimeMillis() + DAYS.toMillis(1));
-        String date = new SimpleDateFormat("E d.MMM").format(System.currentTimeMillis() + DAYS.toMillis(1));
+        String date = new SimpleDateFormat("E d.MMM",new Locale("ru")).format(System.currentTimeMillis() + DAYS.toMillis(1));
         StringBuilder buttonText = new StringBuilder();
         AtomicInteger number = new AtomicInteger(0);
         message = ("Запись на тренировку в " + date + " в %s" + " открыта!\nКоличество свободных мест:   %s \nСписок записавшихся: \n");
