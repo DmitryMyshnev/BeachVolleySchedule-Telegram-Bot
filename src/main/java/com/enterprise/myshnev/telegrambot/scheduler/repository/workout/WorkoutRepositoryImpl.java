@@ -47,4 +47,9 @@ public class WorkoutRepositoryImpl implements WorkoutRepository{
     public Integer count(String tableName,CrudDb table) {
         return table.count(tableName);
     }
+
+    @Override
+    public void dropTable(String tableName, CrudDb table) {
+        table.dropTable(tableName);
+    }
 }

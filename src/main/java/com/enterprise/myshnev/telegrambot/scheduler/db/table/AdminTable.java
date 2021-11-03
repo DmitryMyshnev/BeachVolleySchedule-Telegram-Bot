@@ -3,7 +3,6 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
-import org.sqlite.SQLiteConfig;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,7 +62,7 @@ public class AdminTable implements CrudDb<TelegramUser> {
     @Override
     public Optional<TelegramUser> findById(String tableName,String id) {
         try {
-            String query = String.format(SELECT_FROM.getQuery(), tableName,CHAT_ID, id);
+            String query = String.format(SELECT_WHERE.getQuery(), tableName,CHAT_ID, id);
             ResultSet res = ConnectionDb.executeQuery(query);
             if (res.next()) {
                 TelegramUser user = new TelegramUser();
@@ -126,5 +125,10 @@ public class AdminTable implements CrudDb<TelegramUser> {
     @Override
     public String addTable(String name) {
         return null;
+    }
+
+    @Override
+    public void dropTable(String tableName) {
+
     }
 }

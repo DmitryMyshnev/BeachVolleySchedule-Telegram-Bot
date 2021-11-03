@@ -21,4 +21,6 @@ public interface WorkoutService {
     String delete(String tableName,String chatId,CrudDb table);
 
     Integer count(String tableName,CrudDb table);
+
+    void dropTable(String tableName,CrudDb table);
 }

@@ -9,5 +9,4 @@ public class ApplicationBotScheduler {
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationBotScheduler.class, args);
 	}
-
 }

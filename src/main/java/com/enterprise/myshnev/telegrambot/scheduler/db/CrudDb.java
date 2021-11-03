@@ -19,4 +19,6 @@ public interface CrudDb<T> {
     String delete(String tableName,String id);
 
     Integer count(String tableName);
+
+    void dropTable(String tableName);
 }

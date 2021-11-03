@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.SELECT_ALL;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.SELECT_WHERE;
 
 public class CoachTable implements CrudDb<TelegramUser> {
     private static final String TABLE = "Coach";
@@ -57,7 +58,23 @@ public class CoachTable implements CrudDb<TelegramUser> {
 
     @Override
     public Optional findById(String tableName,String id) {
-        return Optional.empty();
+        try {
+            String query = String.format(SELECT_WHERE.getQuery(), tableName,CHAT_ID, id);
+            ResultSet res = ConnectionDb.executeQuery(query);
+            if (res.next()) {
+                TelegramUser user = new TelegramUser();
+                user.setChatId(res.getString(CHAT_ID));
+                user.setFirstName(res.getString(FIRST_NAME));
+                user.setLastName(res.getString(LAST_NAME));
+                res.getStatement().close();
+                res.close();
+                return Optional.of(user);
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -78,5 +95,10 @@ public class CoachTable implements CrudDb<TelegramUser> {
     @Override
     public Integer count(String tableName) {
         return null;
+    }
+
+    @Override
+    public void dropTable(String tableName) {
+
     }
 }

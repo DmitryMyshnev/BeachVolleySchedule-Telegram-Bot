@@ -54,4 +54,9 @@ public class WorkoutServiceImpl implements WorkoutService{
     public String delete(String tableName,String chatId, CrudDb table) {
         return workoutRepository.delete(tableName,chatId,table);
     }
+
+    @Override
+    public void dropTable(String tableName, CrudDb table) {
+        workoutRepository.dropTable(tableName,table);
+    }
 }

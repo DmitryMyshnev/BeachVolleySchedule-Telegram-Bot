@@ -1,15 +1,29 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.*;
 
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.ENJOY;
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols.getSymbol;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
+
+
+import static java.util.concurrent.TimeUnit.*;
+
+import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.NewWorkout;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
+import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.Data;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
+import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+
+import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
@@ -19,40 +33,98 @@ import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*
 public class StartCommand implements Command {
     private final SendMessageService sendMessageService;
     private final UserService userService;
-    String message;
+    private final WorkoutService workoutService;
+    private String message;
+    private InlineKeyboardMarkup board;
+    private String callback;
+    private String timeOfWorkout;
+    private String dayOfWeek;
+    private final CoachTable coachTable;
+    private final WorkoutsTable workoutsTable;
+    private final NewWorkoutTable newWorkoutTable;
+    private final UserTable userTable;
 
-    public StartCommand(SendMessageService sendMessageService, UserService userService) {
+    public StartCommand(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
+        this.workoutService = workoutService;
+        coachTable = new CoachTable();
+        workoutsTable = new WorkoutsTable();
+        newWorkoutTable = new NewWorkoutTable();
+        userTable = new UserTable();
     }
 
     @Override
     public void execute(Update update) {
-        TelegramUser user = new TelegramUser(getChatId(update), getFirstName(update), getLastName(update));
-        userService.findByChatId("Coach",getChatId(update), new CoachTable()).map(TelegramUser.class::cast).ifPresentOrElse(coach -> {
+
+        userService.findByChatId(COACH.getTableName(), getChatId(update), coachTable).map(TelegramUser.class::cast).ifPresentOrElse(coach -> {
             message = "Привет, " + coach.getFirstName() + "! ";
-            sendMessageService.sendMessage(coach.getChatId(), message);
+            sendMessageService.sendMessage(coach.getChatId(), message, null);
         }, () -> {
-            String stat = userService.save("Users",user, new UserTable());
+            TelegramUser user = new TelegramUser(getChatId(update), getFirstName(update), getLastName(update));
+            String stat = userService.save(USERS.getTableName(), user, userTable);
             if (!stat.equals(EXIST.getStatus())) {
-                List<TelegramUser> coach = userService.findAll("Coach",new CoachTable()).stream().map(us -> (TelegramUser) us).collect(Collectors.toList());
+                List<TelegramUser> coach = userService.findAll("Coach", new CoachTable()).stream().map(us -> (TelegramUser) us).collect(Collectors.toList());
                 message = "Привет, " + getFirstName(update) + "! Этот бот поможет тебе записываться на тренировки к тренеру: \n " +
                         coach.get(0).getFirstName() + " " +
                         coach.get(0).getLastName() +
                         "\n /help - посмотреть инструцию к боту\n" +
-                        "/workout - посмотреть рассписание тренировок";
+                        "/workouts - посмотреть рассписание тренировок";
+                sendMessageService.sendMessage(getChatId(update), message, null);
+                findActiveWorkout(getChatId(update));
             } else {
-                message = "Вы уже зарегистрированы";
+                userService.findByChatId(USERS.getTableName(), getChatId(update),userTable).map(m->(TelegramUser)m)
+                        .ifPresent(u->{
+                            if(u.isActive()){
+                                message = "Вы уже зарегистрированы";
+                            }else {
+                                userService.update(userTable, USERS.getTableName(), getChatId(update),"active","1");
+                                message = "Уведомления включены.";
+                            }
+                        });
+                sendMessageService.sendMessage(getChatId(update), message, null);
             }
-            sendMessageService.sendMessage(getChatId(update), message);
+
         });
     }
-    public void time(){
-        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-        formatter.format(System.currentTimeMillis());
 
+    private void findActiveWorkout(String chatId) {
+        String day = new SimpleDateFormat("E").format(System.currentTimeMillis() + DAYS.toMillis(1));
+        String date = new SimpleDateFormat("E d.MMM").format(System.currentTimeMillis() + DAYS.toMillis(1));
+        StringBuilder buttonText = new StringBuilder();
+        AtomicInteger number = new AtomicInteger(0);
+        message = ("Запись на тренировку в " + date + " в %s" + " открыта!\nКоличество свободных мест:   %s \nСписок записавшихся: \n");
+        workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
+                .map(m -> (Workouts) m)
+                .filter(Workouts::isActive)
+                .forEach(w -> {
+                    timeOfWorkout = w.getTime();
+                    dayOfWeek = w.getDayOfWeek();
+                    callback = ENJOY.getCommandName() + "/" + w.getDayOfWeek() + "/" + timeOfWorkout + "/" + w.getMaxCountUser();
+                    List<NewWorkout> workout = workoutService.findAll(w.getDayOfWeek() + w.getTime(), newWorkoutTable).stream()
+                            .map(m -> (NewWorkout) m).collect(Collectors.toList());
+                    Long freePlaces = w.getMaxCountUser() - workout.stream().filter(r -> !r.isReserve()).count();
+                    message = String.format(message, timeOfWorkout, getSymbol(freePlaces.intValue()));
+                    workout.stream()
+                            .filter(r -> !r.isReserve())
+                            .forEach(user -> {
+                                message += (number.incrementAndGet() + ". " + user.getFirstName() + " " + user.getLastName() + "\n");
+                            });
+                    workout.stream()
+                            .filter(NewWorkout::isReserve)
+                            .findFirst()
+                            .ifPresentOrElse(p -> {
+                                message += "❗️Резерв: \n";
+                                buttonText.append("Записаться в резерв");
+                            }, () -> buttonText.append("Записаться"));
+
+                    workout.stream()
+                            .filter(NewWorkout::isReserve).forEach(user -> {
+                        message += (number.incrementAndGet() + ". " + user.getFirstName() + " " + user.getLastName() + "\n");
+                    });
+                    board = builder().add(buttonText.toString(), callback).create();
+                    sendMessageService.sendMessage(new Data(chatId, message, board, timeOfWorkout, dayOfWeek,w.getMaxCountUser(), false));
+                    buttonText.delete(0, buttonText.length());
+                });
     }
-
-
-
 }

@@ -21,4 +21,6 @@ public interface WorkoutRepository {
     String delete(String tableName,String id,CrudDb table);
 
     Integer count(String tableName,CrudDb table);
+
+    void dropTable(String tableName,CrudDb table);
 }

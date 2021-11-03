@@ -1,7 +1,8 @@
 package com.enterprise.myshnev.telegrambot.scheduler.db;
 
 
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.util.ResourceUtils;
 import org.sqlite.SQLiteConfig;
 
@@ -16,25 +17,24 @@ import java.sql.Statement;
 import java.util.Properties;
 
 public class ConnectionDb {
-    private final SQLiteConfig config;
-    private final String pathDbConnect;
+    public static Logger LOGGER = LogManager.getLogger(ConnectionDb.class);
     private static Connection connect;
 
     public ConnectionDb() {
-        pathDbConnect = getPassFromFileConfig();
-        config = new SQLiteConfig();
+        String DbPath = "jdbc:sqlite:" + System.getProperty("user.dir") + File.separator + "user.db";
+
+        SQLiteConfig config = new SQLiteConfig();
         config.setSharedCache(true);
-        connect =  getConnection(config,pathDbConnect);
+        connect =  getConnection(config,DbPath);
     }
 
     public static void executeUpdate(String query) throws SQLException {
             Statement statement = connect.createStatement();
             statement.executeUpdate(query);
             statement.close();
-            //connect.close();
     }
 
-    public static ResultSet executeQuery(String query) {
+    public  static ResultSet executeQuery(String query) {
         try {
             ResultSet res = connect.createStatement().executeQuery(query);
             return res;

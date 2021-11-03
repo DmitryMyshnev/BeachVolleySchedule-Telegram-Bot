@@ -4,32 +4,24 @@ import lombok.Data;
 
 
 @Data
-//@Entity
-//@Table(name = "Users")
 public class TelegramUser {
 
-    // @Id
-    //  @Column(name = "chat_id")
     private String chatId;
-    //  @Column(name = "first_name")
     private String firstName;
-    //  @Column(name = "last_name")
     private String lastName;
-    //   @Column(name = "admin")
-    private boolean admin;
-    //  @Column(name = "coach")
+    private boolean active;
     private boolean coach;
 
     public TelegramUser(String chatId, String firstName, String lastName) {
         this.chatId = chatId;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.admin = false;
+        this.active = true;
         this.coach = false;
     }
 
     public TelegramUser() {
-        admin = false;
+        active = false;
         coach = false;
     }
 
@@ -38,7 +30,7 @@ public class TelegramUser {
         return "'" + chatId +
                 "', '" + firstName +
                 "', '" + lastName +
-                "', " + admin +
+                "', " + active +
                 ", " + coach;
     }
     public String fullName(){

@@ -3,34 +3,25 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.NewWorkout;
-import org.sqlite.SQLiteConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
 
 public class NewWorkoutTable implements CrudDb<NewWorkout> {
-    private static String TABLE = "New_workout";
     private static final String USER_ID = "user_id";
     private static final String FIRST_NAME = "first_name";
     private static final String LAST_NAME = "last_name";
     private static final String RESERVE = "reserve";
-    private static final String WEEK_OF_DAY = "week_of_day";
-    private static final String TIME = "time";
-
-
-    public NewWorkoutTable() {
-
-    }
-
-    public NewWorkoutTable(String TABLE) {
-        this.TABLE = TABLE;
-    }
+    public static Logger LOGGER = LogManager.getLogger(NewWorkoutTable.class);
 
     @Override
     public String addTable(String name) {
@@ -43,7 +34,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
         try {
             ConnectionDb.execute(query);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return FAIL.getStatus();
         }
         return name;
@@ -60,8 +52,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
             try {
                 ConnectionDb.executeUpdate(query);
             } catch (SQLException e) {
-                e.printStackTrace();
-                return e.getSQLState();
+                LOGGER.error(e.getMessage());
+                LOGGER.error(e.getSQLState());
             }
             return OK.getStatus();
         } else
@@ -74,7 +66,7 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
             String query = String.format(SELECT_ALL.getQuery(), tableName);
             ResultSet res = ConnectionDb.executeQuery(query);
             List<NewWorkout> list = new ArrayList<>();
-            while (res.next()) {
+            while (Objects.requireNonNull(res).next()) {
                 NewWorkout workout = new NewWorkout();
                 workout.setUserId(res.getString(USER_ID));
                 workout.setFirstName(res.getString(FIRST_NAME));
@@ -86,7 +78,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
             res.close();
             return list;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return null;
         }
     }
@@ -94,9 +87,9 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
     @Override
     public Optional<NewWorkout> findById(String tableName,String id) {
         try {
-            String query = String.format(SELECT_FROM.getQuery(), tableName, USER_ID, id);
+            String query = String.format(SELECT_WHERE.getQuery(), tableName, USER_ID, id);
             ResultSet res = ConnectionDb.executeQuery(query);
-            if (res.next()) {
+            if (Objects.requireNonNull(res).next()) {
                 NewWorkout workout = new NewWorkout();
                 workout.setUserId(res.getString(USER_ID));
                 workout.setFirstName(res.getString(FIRST_NAME));
@@ -108,7 +101,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
             }
             return Optional.empty();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return Optional.empty();
         }
     }
@@ -126,6 +120,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -137,6 +133,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -147,13 +145,25 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
         ResultSet res = ConnectionDb.executeQuery(query);
         int count;
         try {
-            count = res.getInt("total");
+            count = Objects.requireNonNull(res).getInt("total");
             res.getStatement().close();
             res.close();
             return count;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
         }
         return 0;
+    }
+
+    @Override
+    public void dropTable(String tableName) {
+            String query = "DROP TABLE '" + tableName + "';";
+            try {
+                ConnectionDb.executeUpdate(query);
+            } catch (SQLException e) {
+                LOGGER.error(e.getMessage());
+                LOGGER.error(e.getSQLState());
+            }
     }
 }
