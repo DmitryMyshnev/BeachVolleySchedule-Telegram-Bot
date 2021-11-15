@@ -32,6 +32,7 @@ public class CommandContainer {
                 .put(ADD_WORKOUT.getCommandName(), addWorkoutCommand)
                 .put(ADD.getCommandName(), addWorkoutCommand)
                 .put(STATISTIC.getCommandName(),new StatInfoCommand(sendMessageService,userService))
+                .put(GET_DATA_BASE.getCommandName(), new GetDbCommand(sendMessageService))
                 .build();
         unknownCommand = new UnknownCommand(sendMessageService,userService);
         TimerOfNotification time = new TimerOfNotification(sendMessageService,userService,workoutService);

@@ -20,10 +20,12 @@ import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoa
 public class EditCommand implements Command{
     private final SendMessageService sendMessageService;
     private final WorkoutService workoutService;
+    private final WorkoutsTable workoutsTable;
 
     public EditCommand(SendMessageService sendMessageService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.workoutService = workoutService;
+        workoutsTable = new WorkoutsTable();
     }
 
     @Override
@@ -32,7 +34,7 @@ public class EditCommand implements Command{
         String time = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
         Integer messageId = getMessageId(update);
         String message;
-        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), new WorkoutsTable()).stream()
+        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
                 .map(w -> (Workouts) w)
                 .collect(Collectors.toList());
         message = "\n Выберете действие для тренировки: \n" +"<i>"+ WEEK_FULL_NAME.get(weekOfDay) + " " + time + "</i>";

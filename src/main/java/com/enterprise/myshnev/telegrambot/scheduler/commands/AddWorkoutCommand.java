@@ -1,6 +1,8 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
@@ -22,8 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.USERS;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.WORKOUT;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
 
 
 public class AddWorkoutCommand implements Command {
@@ -31,7 +32,7 @@ public class AddWorkoutCommand implements Command {
     private final WorkoutService workoutService;
     private final UserService userService;
     private String message;
-    private final UserTable userTable;
+    private final CoachTable coachTable;
     private final WorkoutsTable workoutsTable;
     private boolean accept = false;
     private String superAdmin;
@@ -40,7 +41,7 @@ public class AddWorkoutCommand implements Command {
         this.sendMessageService = sendMessageService;
         this.workoutService = workoutService;
         this.userService = userService;
-        userTable = new UserTable();
+        coachTable = new CoachTable();
         workoutsTable = new WorkoutsTable();
         superAdmin = getSuperAdminFromFileConfig();
     }
@@ -49,9 +50,11 @@ public class AddWorkoutCommand implements Command {
     public void execute(Update update) {
         String chatId = getChatId(update);
         String command;
-        userService.findByChatId(USERS.getTableName(), chatId, userTable).
+        userService.findByChatId(COACH.getTableName(), chatId, coachTable).
                 map(m -> (TelegramUser) m)
-                .ifPresent(user -> accept = user.isCoach() || user.isActive() || getChatId(update).equals(superAdmin));
+                .ifPresentOrElse(user -> accept = true,()->{
+                    userService.findByChatId(ADMIN.getTableName(), chatId, new AdminTable()).ifPresent(admin-> accept = true);
+                });
         if (accept) {
             if (getCallbackQuery(update) != null) {
                 command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[0];

@@ -53,6 +53,11 @@ public class ConfirmCommand implements Command {
         String tableName = weekOfDay + timeOfWorkout;
         if (answer.equals("yes")) {
             workoutService.dropTable(tableName, newWorkoutTable);
+            workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
+                    .map(m -> (Workouts) m)
+                    .filter(f -> (f.getDayOfWeek().equals(weekOfDay) && f.getTime().equals(timeOfWorkout))).findFirst().ifPresent(w -> {
+                workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "0");
+            });
             sendMessageForAllUsers();
         } else {
             AtomicInteger maxSize = new AtomicInteger(0);
@@ -82,20 +87,14 @@ public class ConfirmCommand implements Command {
                             sendMessageService.deleteWorkoutMessage(user.getChatId(), p.getMessageId());
                         });
                 sendMessageService.sendMessage(user.getChatId(), message, null);
-                workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                        .map(m -> (Workouts) m)
-                        .filter(f -> (f.getDayOfWeek().equals(weekOfDay) && f.getTime().equals(timeOfWorkout))).findFirst().ifPresent(w -> {
-                    workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "0");
-                });
+
             } else {
-                if (user.isActive()) {
                     sendMessageService.getData(user.getChatId()).stream()
                             .filter(f -> (f.getTimeWorkout().equals(timeOfWorkout)))
                             .findFirst().ifPresent(w -> {
                         sendMessageService.deleteWorkoutMessage(user.getChatId(), w.getMessageId());
                         sendMessageService.sendMessage(user.getChatId(), message, null);
                     });
-                }
             }
         });
     }

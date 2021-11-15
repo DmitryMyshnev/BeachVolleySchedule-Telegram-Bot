@@ -30,6 +30,7 @@ public class HelpCommand implements Command{
 
     @Override
     public void execute(Update update) {
+
         String time = getTimeNotificationFromFileConfig();
         message = "/start - начало работы с ботом\n" +
                 "/workout - просмотреть расписание тренировок\n" +

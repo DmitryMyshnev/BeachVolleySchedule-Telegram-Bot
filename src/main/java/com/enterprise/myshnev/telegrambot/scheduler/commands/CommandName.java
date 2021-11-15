@@ -15,7 +15,8 @@ public enum CommandName {
     CONFIRM_COACH("confirm_coach"),
     ADD_WORKOUT("add_workout"),
     ADD("add"),
-    CANCEL_WORKOUT("cancel_workout");
+    CANCEL_WORKOUT("cancel_workout"),
+    GET_DATA_BASE("/db");
     private final String commandName;
 
     CommandName(String commandName) {

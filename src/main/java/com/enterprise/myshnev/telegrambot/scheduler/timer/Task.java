@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.timer;
 
+import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.NewWorkoutTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
@@ -22,7 +23,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols.*;
 import static java.util.concurrent.TimeUnit.*;
-
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -56,7 +57,6 @@ public class Task extends TimerTask {
     private String message;
     private InlineKeyboardMarkup board;
     private final SimpleDateFormat formatOfWeek;
-    private final SimpleDateFormat formatOfDay;
     private final StopTimerTack stopTimerTack;
     private final SimpleDateFormat formatOfHour;
     private final WorkoutsTable workoutsTable;
@@ -69,11 +69,10 @@ public class Task extends TimerTask {
         this.workoutService = workoutService;
         this.stopTimerTack = new StopTimerTack(sendMessageService, userService, workoutService);
         formatOfWeek = new SimpleDateFormat("u");
-        formatOfDay = new SimpleDateFormat("E d MMM");
         formatOfHour = new SimpleDateFormat("H:mm");
         workoutsTable = new WorkoutsTable();
         newWorkoutsTable = new NewWorkoutTable();
-        HOUR_OF_NOTIFICATION =getTimeNotificationFromFileConfig();
+        HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
     }
 
     @Override
@@ -82,27 +81,18 @@ public class Task extends TimerTask {
         workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream().map(w -> (Workouts) w).forEach(w -> {
             String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
             int dayOfNotification = (WEEK.get(w.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(w.getDayOfWeek()) - 1;
-            // int dayOfNotification = WEEK.get(w.getDayOfWeek());
+           //int dayOfNotification = WEEK.get(w.getDayOfWeek());
             int dayOfWorkout = WEEK.get(w.getDayOfWeek());
-
             if (Integer.parseInt(currentDayOfWeek) == dayOfNotification && formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
-                LOGGER.info("dayOfNotification: " + dayOfNotification);
                 workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "1");
                 createNotification(w.getDayOfWeek(), w.getTime(), w.getMaxCountUser());
             }
 
             if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout &&  formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
-                LOGGER.info("dayOfWorkout: " + dayOfWorkout);
                 stopTimerTack.breakWorkout(w.getDayOfWeek(), w.getTime(), w.getId());
 
             }
         });
-
-        //  createNotification("11:00", 8);
-        //  createNotification("12:00",8);
-        // stopTimerTack.breakWorkout("11:00");
-        //stopTimerTack.breakWorkout("13:00");
-
     }
 
     private void createNotification(String dayOfWeek, String time, Integer maxPlayer) {
@@ -123,17 +113,5 @@ public class Task extends TimerTask {
             }
         });
     }
-    private  String getTimeNotificationFromFileConfig() {
-        Properties properties = new Properties();
-        try {
-            String path = System.getProperty("user.dir") + File.separator + "config.properties";
-            File file = ResourceUtils.getFile(path);
-            InputStream in = new FileInputStream(file);
-            properties.load(in);
-            in.close();
-        } catch (IOException e) {
-            LOGGER.info(e.getMessage());
-        }
-        return properties.getProperty("timeOfNotification");
-    }
+
 }

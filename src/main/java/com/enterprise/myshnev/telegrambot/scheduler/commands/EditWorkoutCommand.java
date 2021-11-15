@@ -24,7 +24,7 @@ public class EditWorkoutCommand implements Command {
     private final WorkoutService workoutService;
     private String message;
     private InlineKeyboardMarkup board;
-    private WorkoutsTable workoutsTable;
+    private final WorkoutsTable workoutsTable;
 
     public EditWorkoutCommand(SendMessageService sendMessageService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
@@ -83,7 +83,9 @@ public class EditWorkoutCommand implements Command {
                 mess.append("\n");
             size.set(0);
         });
-        mess.append("\n Выберете для редкатирования: \n");
+        if(!workout.isEmpty()) {
+            mess.append("\n Выберете для редкатирования: \n");
+        }
         return mess.toString();
     }
 

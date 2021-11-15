@@ -1,10 +1,15 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
+import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Coach;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.util.ResourceUtils;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -17,8 +22,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
 
@@ -43,7 +50,12 @@ public class SuperAdmin implements Command {
     @Override
     public void execute(Update update) {
         String command = getText(update);
-        if (command.equals(ADD_COACH.getCommandName()) && !getChatId(update).equals(idSuperAdmin)) {
+        List<TelegramUser> listOfAdmin = userService.findAll(Tables.ADMIN.getTableName(), new AdminTable()).stream()
+                .map(TelegramUser.class::cast).collect(Collectors.toList());
+
+        if (command.equals(ADD_COACH.getCommandName()) &&
+                !getChatId(update).equals(idSuperAdmin) &&
+                listOfAdmin.stream().noneMatch(admin->(admin.getChatId().equals(getChatId(update))))) {
             firstNameCoach = getFirstName(update);
             lastNameCoach = getLastName(update);
             chatIdCoach = getChatId(update);
@@ -53,8 +65,9 @@ public class SuperAdmin implements Command {
                 }else {
                     sendMessageService.sendMessage(getChatId(update), "Ожидайте подтверждения...", null);
                     String message = "Подтвердите тренера <i>" + firstNameCoach + " " + lastNameCoach + "</i>";
-                    InlineKeyboardMarkup board = builder().add("Подтвердить", "confirm_coach/ok/" + firstNameCoach + "/" + lastNameCoach).add("Отменить", "confirm_coach/no").create();
-                    sendMessageService.sendMessage(idSuperAdmin, message, board);
+                    InlineKeyboardMarkup board = builder().add("Подтвердить", "confirm_coach/ok/" + firstNameCoach + "/" + lastNameCoach)
+                            .add("Отменить", "confirm_coach/no").create();
+                    listOfAdmin.forEach(admin-> sendMessageService.sendMessage(admin.getChatId(), message, board));
                 }
             });
         }
@@ -66,12 +79,13 @@ public class SuperAdmin implements Command {
                     userService.findByChatId(USERS.getTableName(), chatIdCoach,userTable).stream().map(m -> (TelegramUser) m).findFirst()
                            .ifPresent(p -> {
                         workoutService.update(userTable, USERS.getTableName(), p.getChatId(), "coach", "1");
-                        sendMessageService.editMessage(getChatId(update),getMessageId(update),"Successful!",null);
+                        userService.save(COACH.getTableName(), new Coach(p.getChatId(),firstNameCoach,lastNameCoach),new CoachTable());
+                        listOfAdmin.forEach(admin-> sendMessageService.editMessage(admin.getChatId(),getMessageId(update),"Successful!",null));
                         sendMessageService.sendMessage(p.getChatId(), "Вы добавлены тренером!", null);
                     });
                 }else {
                     if(answer.equals("no")){
-                        sendMessageService.deleteMessage(getChatId(update),getMessageId(update));
+                        listOfAdmin.forEach(admin->sendMessageService.deleteMessage(admin.getChatId(),getMessageId(update)));
                         sendMessageService.sendMessage(chatIdCoach,"Отклонено!",null);
                     }
                 }

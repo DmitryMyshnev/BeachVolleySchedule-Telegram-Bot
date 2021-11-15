@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard;
@@ -23,6 +24,8 @@ public class ScheduleCommand implements Command {
     private final SendMessageService sendMessageService;
     private final WorkoutService workoutService;
     private final UserService userService;
+    private UserTable userTable;
+    private WorkoutsTable  workoutsTable;
 
     private String message = "<strong>Рассписание тренировок:</strong>\n";
     private InlineKeyboardMarkup board;
@@ -31,22 +34,25 @@ public class ScheduleCommand implements Command {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
         this.workoutService = workoutService;
+        userTable = new UserTable();
+        workoutsTable = new WorkoutsTable();
     }
 
     @Override
     public void execute(Update update) {
-        userService.findByChatId(USERS.getTableName(), getChatId(update), new UserTable()).map(m -> (TelegramUser) m)
-                .ifPresent(user -> {
+        userService.findByChatId(USERS.getTableName(), getChatId(update), userTable).map(m -> (TelegramUser) m)
+                .ifPresentOrElse(user -> {
                     if (user.isCoach()) {
                         getWorkoutsForCoach(update);
                     } else {
                         getWorkoutsForUser(update);
                     }
-                });
+                },()-> userService.findByChatId(ADMIN.getTableName(), getChatId(update),new AdminTable()).map(TelegramUser.class::cast)
+                        .ifPresent(admin-> getWorkoutsForCoach(update)));
     }
 
     private void getWorkoutsForUser(Update update) {
-        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), new WorkoutsTable()).stream().
+        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream().
                 map(w -> (Workouts) w)
                 .collect(Collectors.toList());
         message = createMessage(workout);
@@ -55,7 +61,7 @@ public class ScheduleCommand implements Command {
 
     private void getWorkoutsForCoach(Update update) {
         InlineKeyBoard button = new InlineKeyBoard();
-        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), new WorkoutsTable()).stream()
+        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
                 .map(w -> (Workouts) w)
                 .collect(Collectors.toList());
         WEEK.forEach(week -> workout.stream().filter(f->(f.getDayOfWeek().equals(week))).forEach(w->{
@@ -64,7 +70,9 @@ public class ScheduleCommand implements Command {
         }));
         board = button.addButton("Добавить тренировку", "add_workout/");
         message = createMessage(workout);
-        message += "\n Выберете для редактирования:\n";
+        if(!workout.isEmpty()) {
+            message += "\n Выберете для редактирования:\n";
+        }
         sendMessageService.sendMessage(getChatId(update), message, board);
     }
 

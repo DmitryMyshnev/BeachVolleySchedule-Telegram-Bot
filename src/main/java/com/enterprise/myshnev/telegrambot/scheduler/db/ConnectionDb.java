@@ -36,10 +36,10 @@ public class ConnectionDb {
 
     public  static ResultSet executeQuery(String query) {
         try {
-            ResultSet res = connect.createStatement().executeQuery(query);
-            return res;
+            return connect.createStatement().executeQuery(query);
         } catch (SQLException e) {
-            e.printStackTrace();
+           LOGGER.error(e.getMessage());
+           LOGGER.error(e.getSQLState());
             return null;
         }
     }
@@ -47,26 +47,14 @@ public class ConnectionDb {
         Statement statement = connect.createStatement();
         statement.execute(query);
         statement.close();
-       // connect.close();
     }
     private  Connection getConnection(SQLiteConfig config,String path) {
         try {
             Class.forName("org.sqlite.JDBC");
             return config.createConnection(path);
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
             return null;
         }
-    }
-    private  String getPassFromFileConfig() {
-        Properties properties = new Properties();
-        try {
-            File file = ResourceUtils.getFile("classpath:application.properties");
-            InputStream in = new FileInputStream(file);
-            properties.load(in);
-        } catch (IOException e) {
-            e.getMessage();
-        }
-        return properties.getProperty("connectionDbUrl");
     }
 }

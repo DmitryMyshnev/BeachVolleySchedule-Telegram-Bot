@@ -3,6 +3,9 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
 
@@ -18,6 +21,7 @@ public class UserTable implements CrudDb<TelegramUser> {
     private static final String LAST_NAME = "last_name";
     private static final String ACTIVE = "active";
     private static final String COACH = "coach";
+    public static Logger LOGGER = LogManager.getLogger(UserTable.class);
 
     public UserTable() {
 
@@ -30,8 +34,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             try {
                 ConnectionDb.executeUpdate(query);
             } catch (SQLException e) {
-                e.printStackTrace();
-                return e.getSQLState();
+                LOGGER.error(e.getMessage());
+                LOGGER.error(e.getSQLState());
             }
             return OK.getStatus();
         } else
@@ -56,7 +60,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             }
             return Optional.empty();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return Optional.empty();
         }
     }
@@ -73,7 +78,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return e.getSQLState();
         }
     }
@@ -85,7 +91,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return e.getSQLState();
         }
     }
@@ -109,7 +116,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             res.close();
             return list;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
             return null;
         }
     }
@@ -124,7 +132,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             }
         }
       catch (SQLException e){
-            e.printStackTrace();
+          LOGGER.error(e.getMessage());
+          LOGGER.error(e.getSQLState());
       }
         return 0;
     }

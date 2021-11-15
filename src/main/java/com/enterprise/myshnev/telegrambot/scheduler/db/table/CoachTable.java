@@ -2,7 +2,10 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
+import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Coach;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sqlite.SQLiteConfig;
 
 import java.sql.ResultSet;
@@ -11,27 +14,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.SELECT_ALL;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.SELECT_WHERE;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.OK;
 
-public class CoachTable implements CrudDb<TelegramUser> {
-    private static final String TABLE = "Coach";
+public class CoachTable implements CrudDb<Coach> {
     private static final String CHAT_ID = "chat_id";
     private static final String FIRST_NAME = "first_name";
     private static final String LAST_NAME = "last_name";
-    private static final String ADMIN = "admin";
-    private static final String COACH = "coach";
-    public CoachTable() {
+    public static Logger LOGGER = LogManager.getLogger(CoachTable.class);
 
-    }
     @Override
     public String addTable(String name) {
         return null;
     }
 
     @Override
-    public String insertIntoTable(String tableName,TelegramUser telegramUser) {
-        return null;
+    public String insertIntoTable(String tableName, Coach coach) {
+        String query = String.format(INSERT_INTO.getQuery(), tableName, CHAT_ID + "," + FIRST_NAME + "," + LAST_NAME, coach);
+        try {
+            ConnectionDb.executeUpdate(query);
+        } catch (SQLException e) {
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
+        }
+        return OK.getStatus();
     }
 
     @Override

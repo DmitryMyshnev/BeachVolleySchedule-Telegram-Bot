@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.STATISTIC;
 
 public class StatInfoCommand implements Command {
@@ -24,17 +23,19 @@ public class StatInfoCommand implements Command {
     public StatInfoCommand(SendMessageService sendMessageService, UserService userService) {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
-        FILE_PATH = System.getProperty("user.dir") + File.separator + "statistic.xls";
+        FILE_PATH = System.getProperty("user.dir") + File.separator + "statistic.csv";
     }
 
     @Override
     public void execute(Update update) {
         userService.findByChatId("Admin",getChatId(update),new AdminTable()).ifPresentOrElse(p->{
-        try (BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(FILE_PATH), StandardCharsets.UTF_8))) {
-            fileWriter.write("id\tUser Name\tWorkout\tAction\tDate");
+        try (BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(FILE_PATH), "windows-1251"))) {
+            fileWriter.write("SEP=;");
+            fileWriter.newLine();
+            fileWriter.write("id;User Name;Workout;Action;Date");
             userService.findAll(STATISTIC.getTableName(), new StatisticTable()).stream().map(m -> (Statistic) m)
                     .forEach(s -> {
-                        String line = String.format("%s\t%s\t%s\t%s\t%s",
+                        String line = String.format("%s;%s;%s;%s;%s",
                                 s.getId(), s.getUserName(), s.getWorkout(), s.getAction(), s.getDate());
                         try {
                             fileWriter.newLine();

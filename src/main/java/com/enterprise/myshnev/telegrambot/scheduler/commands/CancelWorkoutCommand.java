@@ -19,7 +19,7 @@ public class CancelWorkoutCommand implements Command {
     private final UserService userService;
     public final WorkoutService workoutService;
     private InlineKeyboardMarkup board;
-    private NewWorkoutTable newWorkoutTable;
+    private final NewWorkoutTable newWorkoutTable;
 
     public CancelWorkoutCommand(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;

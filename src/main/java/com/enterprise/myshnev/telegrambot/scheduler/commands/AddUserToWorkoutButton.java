@@ -3,9 +3,11 @@ package com.enterprise.myshnev.telegrambot.scheduler.commands;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.NewWorkoutTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.StatisticTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
+import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.NewWorkout;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Statistic;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.Data;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
@@ -14,14 +16,15 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.STATISTIC;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.USERS;
 import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
 
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -44,6 +47,8 @@ public class AddUserToWorkoutButton implements Command {
     private final Statistic stat;
     private final StatisticTable statisticTable;
     private final NewWorkoutTable newWorkoutTable;
+    private final WorkoutsTable workoutTable;
+    private final UserTable userTable;
     private InlineKeyboardMarkup board;
     private String callback;
     private String workoutTableName;
@@ -55,7 +60,9 @@ public class AddUserToWorkoutButton implements Command {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
         this.workoutService = workoutService;
+        userTable = new UserTable();
         newWorkoutTable = new NewWorkoutTable();
+        workoutTable = new WorkoutsTable();
         statisticTable = new StatisticTable();
         Date = new SimpleDateFormat("d.MM.yy");
         stat = new Statistic();
@@ -76,6 +83,9 @@ public class AddUserToWorkoutButton implements Command {
         timeOfWorkout = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
         maxSize = Integer.parseInt(Objects.requireNonNull(getCallbackQuery(update)).split("/")[3]);
         workoutTableName = dayOfWeek + timeOfWorkout;
+        if(!validWorkout(workoutTableName)){
+            return;
+        }
         AtomicInteger number = new AtomicInteger(0);
         freePlaces = maxSize - workoutService.count(workoutTableName, newWorkoutTable);
         message = ("Запись на тренировку в " + date + " в " + timeOfWorkout + " открыта!\nКоличество свободных мест:   %s \nСписок записавшихся: \n");
@@ -140,10 +150,10 @@ public class AddUserToWorkoutButton implements Command {
     }
 
     private void sendMessageForAllUsers() {
-        userService.findAll(USERS.getTableName(), new UserTable()).stream().map(u -> (TelegramUser) u).collect(Collectors.toList()).forEach(user -> {
+        userService.findAll(USERS.getTableName(), userTable).stream().map(u -> (TelegramUser) u).collect(Collectors.toList()).forEach(user -> {
             if(user.isActive()) {
                 if (sendMessageService.getData(user.getChatId()).isEmpty()) {
-                    String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться ";
+                    String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
                     board = builder().add(text, callback).create();
                     sendMessageService.sendMessage(new Data(user.getChatId(), String.format(message, getSymbol(freePlaces)), board, timeOfWorkout, dayOfWeek, maxSize, false));
                 } else {
@@ -155,9 +165,9 @@ public class AddUserToWorkoutButton implements Command {
                         board = builder().add("Отменить тренировку", "cancel_workout/" + dayOfWeek + "/" + timeOfWorkout).create();
                     } else {
                         if (workoutService.findByChatId(workoutTableName, user.getChatId(), newWorkoutTable).isPresent()) {
-                            board = builder().add("Охрана, отмена!", callback).create();
+                            board = builder().add("Отмена", callback).create();
                         } else {
-                            String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться ";
+                            String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
                             board = builder().add(text, callback).create();
                         }
                     }
@@ -194,5 +204,15 @@ public class AddUserToWorkoutButton implements Command {
         stat.setAction(action);
         stat.setDate(Date.format(System.currentTimeMillis()));
         userService.save(STATISTIC.getTableName(),stat, statisticTable);
+    }
+    private boolean validWorkout(String nameOfWorkout){
+        AtomicBoolean isValid = new AtomicBoolean(false);
+        workoutService.findAll(WORKOUT.getTableName(), workoutTable).stream().map(m->(Workouts)m)
+                .forEach(w->{
+                    if((w.getDayOfWeek() + w.getTime()).equals(nameOfWorkout) && w.isActive()){
+                        isValid.set(true);
+                    }
+                });
+        return isValid.get();
     }
 }
