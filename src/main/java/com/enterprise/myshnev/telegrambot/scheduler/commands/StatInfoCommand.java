@@ -1,6 +1,5 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
-import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.StatisticTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Statistic;
@@ -17,7 +16,7 @@ import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.STATI
 public class StatInfoCommand implements Command {
     private final SendMessageService sendMessageService;
     private final UserService userService;
-    public static Logger LOGGER = LogManager.getLogger(TelegramBot.class);
+    public static Logger LOGGER = LogManager.getLogger(StatInfoCommand.class);
     private  static String FILE_PATH;
 
     public StatInfoCommand(SendMessageService sendMessageService, UserService userService) {

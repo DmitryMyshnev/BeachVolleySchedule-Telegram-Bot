@@ -17,7 +17,6 @@ public class GetDbCommand implements Command {
         superAdminId = SuperAdminUtils.getIdSuperAdminFromFileConfig();
     }
 
-
     @Override
     public void execute(Update update) {
         if (getChatId(update).equals(superAdminId)) {
@@ -25,6 +24,5 @@ public class GetDbCommand implements Command {
         }else {
             sendMessageService.deleteMessage(getChatId(update),getMessageId(update));
         }
-
     }
 }

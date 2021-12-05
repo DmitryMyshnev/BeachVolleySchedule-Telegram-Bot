@@ -24,8 +24,9 @@ public class ScheduleCommand implements Command {
     private final SendMessageService sendMessageService;
     private final WorkoutService workoutService;
     private final UserService userService;
-    private UserTable userTable;
-    private WorkoutsTable  workoutsTable;
+    private final UserTable userTable;
+    private final WorkoutsTable  workoutsTable;
+    private final String SUPER_ADMIN;
 
     private String message = "<strong>Рассписание тренировок:</strong>\n";
     private InlineKeyboardMarkup board;
@@ -36,6 +37,7 @@ public class ScheduleCommand implements Command {
         this.workoutService = workoutService;
         userTable = new UserTable();
         workoutsTable = new WorkoutsTable();
+        SUPER_ADMIN = SuperAdminUtils.getIdSuperAdminFromFileConfig();
     }
 
     @Override
@@ -49,6 +51,9 @@ public class ScheduleCommand implements Command {
                     }
                 },()-> userService.findByChatId(ADMIN.getTableName(), getChatId(update),new AdminTable()).map(TelegramUser.class::cast)
                         .ifPresent(admin-> getWorkoutsForCoach(update)));
+        if(getChatId(update).equals(SUPER_ADMIN)){
+            getWorkoutsForCoach(update);
+        }
     }
 
     private void getWorkoutsForUser(Update update) {

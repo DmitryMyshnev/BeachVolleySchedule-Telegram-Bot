@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.NewWorkoutTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.NewWorkout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.Data;
@@ -43,6 +44,6 @@ public class CancelWorkoutCommand implements Command {
             sendMessageService.editMessage(getChatId(update),getMessageId(update), String.format(p.getMessage(), Symbols.getSymbol((p.getMaxUser() - countUser.intValue()))),null);
             sendMessageService.sendMessage(new Data(getChatId(update), message, board, time, dayOfWeek, p.getMaxUser(), true));
         });
-
+        TelegramBot.getInstance().filterQuery.remove(getChatId(update));
     }
 }

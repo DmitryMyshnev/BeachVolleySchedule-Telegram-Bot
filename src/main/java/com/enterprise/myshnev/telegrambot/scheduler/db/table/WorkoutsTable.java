@@ -30,7 +30,11 @@ public class WorkoutsTable implements CrudDb<Workouts> {
 
     @Override
     public String insertIntoTable(String tableName,Workouts workouts) {
-            String query = String.format(INSERT_INTO.getQuery(), tableName, COACH_ID + "," + WEEK_OF_DAY + "," + TIME + "," + IS_ACTIVE , workouts);
+        String params =  COACH_ID + "," + WEEK_OF_DAY + "," + TIME + "," + IS_ACTIVE;
+        if(workouts.getMaxCountUser() != null){
+            params += ", " + MAX_COUNT_USER;
+        }
+            String query = String.format(INSERT_INTO.getQuery(), tableName, params , workouts);
             try {
                 ConnectionDb.executeUpdate(query);
             } catch (SQLException e) {

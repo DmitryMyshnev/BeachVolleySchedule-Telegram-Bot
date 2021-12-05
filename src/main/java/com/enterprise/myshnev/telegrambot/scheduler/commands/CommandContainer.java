@@ -23,7 +23,7 @@ public class CommandContainer {
                 .put(ADMIN.getCommandName(),superAdmin)
                 .put(ADD_COACH.getCommandName(), superAdmin)
                 .put(CONFIRM_COACH.getCommandName(), superAdmin)
-                .put(ENJOY.getCommandName(), new AddUserToWorkoutButton(sendMessageService,userService,workoutService))
+                .put(ENJOY.getCommandName(), new AddUserToWorkout(sendMessageService,userService,workoutService))
                 .put(WORKOUTS.getCommandName(),new  ScheduleCommand(sendMessageService,userService,workoutService))
                 .put(CANCEL_WORKOUT.getCommandName(), new CancelWorkoutCommand(sendMessageService,userService,workoutService))
                 .put(CONFIRM.getCommandName(), new ConfirmCommand(sendMessageService,userService,workoutService))
@@ -33,6 +33,7 @@ public class CommandContainer {
                 .put(ADD.getCommandName(), addWorkoutCommand)
                 .put(STATISTIC.getCommandName(),new StatInfoCommand(sendMessageService,userService))
                 .put(GET_DATA_BASE.getCommandName(), new GetDbCommand(sendMessageService))
+                .put(SET_TIME_NOTIFY.getCommandName(),new SetTimeOfNotifyCommand(sendMessageService))
                 .build();
         unknownCommand = new UnknownCommand(sendMessageService,userService);
         TimerOfNotification time = new TimerOfNotification(sendMessageService,userService,workoutService);

@@ -23,10 +23,14 @@ public class Workouts {
 
     @Override
     public String toString() {
-        return
+        String convertToString =
                 "'" + coachId + "'" +
                 ", '" + dayOfWeek + "'" +
                 ", '" + time+ "'" +
-                ", " + isActive;
+                ", " + isActive ;
+        if(maxCountUser != null){
+            convertToString += ", " + maxCountUser;
+        }
+        return convertToString;
     }
 }

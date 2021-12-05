@@ -50,7 +50,8 @@ public class CoachTable implements CrudDb<Coach> {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
                 user.setFirstName(res.getString(FIRST_NAME));
-                user.setLastName(res.getString(LAST_NAME));
+                String lastName = res.getString(LAST_NAME);
+                user.setLastName(lastName.equals("null") ?"":lastName);
                 list.add(user);
             }
             res.getStatement().close();
@@ -71,7 +72,8 @@ public class CoachTable implements CrudDb<Coach> {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
                 user.setFirstName(res.getString(FIRST_NAME));
-                user.setLastName(res.getString(LAST_NAME));
+                String lastName = res.getString(LAST_NAME);
+                user.setLastName(lastName == null ?"":lastName);
                 res.getStatement().close();
                 res.close();
                 return Optional.of(user);

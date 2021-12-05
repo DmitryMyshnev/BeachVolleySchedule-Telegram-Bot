@@ -12,7 +12,7 @@ public interface CrudDb<T> {
 
     Optional<T> findById(String tableName,String id);
 
-   List<T> findBy(String tableName, String column, Object arg);
+    List<T> findBy(String tableName, String column, Object arg);
 
     String update(String tableName,String chatId,String arg, String value);
 

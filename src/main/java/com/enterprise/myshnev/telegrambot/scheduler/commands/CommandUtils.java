@@ -35,9 +35,15 @@ public class CommandUtils {
 
     public static String getLastName(Update update) {
         if (update.hasMessage()) {
-            return update.getMessage().getFrom().getLastName();
+            if (update.getMessage().getFrom().getLastName() == null)
+                return update.getMessage().getFrom().getUserName();
+            else
+                return update.getMessage().getFrom().getLastName();
         } else {
-            return update.getCallbackQuery().getFrom().getLastName();
+            if (update.getCallbackQuery().getFrom().getLastName() == null)
+                return update.getCallbackQuery().getFrom().getUserName();
+            else
+                return update.getCallbackQuery().getFrom().getLastName();
         }
     }
 

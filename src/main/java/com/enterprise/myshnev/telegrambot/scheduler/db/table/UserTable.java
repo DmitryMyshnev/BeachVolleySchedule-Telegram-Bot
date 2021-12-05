@@ -51,7 +51,8 @@ public class UserTable implements CrudDb<TelegramUser> {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
                 user.setFirstName(res.getString(FIRST_NAME));
-                user.setLastName(res.getString(LAST_NAME));
+                String lastName = res.getString(LAST_NAME);
+                user.setLastName(lastName == null ?"":lastName);
                 user.setActive(res.getBoolean(ACTIVE));
                 user.setCoach(res.getBoolean(COACH));
                 res.getStatement().close();
@@ -107,7 +108,8 @@ public class UserTable implements CrudDb<TelegramUser> {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
                 user.setFirstName(res.getString(FIRST_NAME));
-                user.setLastName(res.getString(LAST_NAME));
+                String lastName = res.getString(LAST_NAME);
+                user.setLastName(lastName.equals("null") ?"":lastName);
                 user.setActive(res.getBoolean(ACTIVE));
                 user.setCoach(res.getBoolean(COACH));
                 list.add(user);

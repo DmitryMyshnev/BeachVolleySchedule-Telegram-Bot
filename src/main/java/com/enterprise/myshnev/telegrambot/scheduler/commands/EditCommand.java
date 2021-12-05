@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
@@ -42,6 +43,7 @@ public class EditCommand implements Command{
                 .add("Удалить","changeWorkout/delete/"  + weekOfDay + "/" + time,true )
                 .add("⬅  Назад к расписанию","changeWorkout/back/" + weekOfDay + "/" + time ).create();
         sendMessageService.editMessage(getChatId(update),messageId ,message,board);
+        TelegramBot.getInstance().filterQuery.remove(getChatId(update));
     }
 
 }

@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.NewWorkoutTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
@@ -74,6 +75,7 @@ public class ConfirmCommand implements Command {
                     });
             sendMessageService.deleteWorkoutMessage(getChatId(update), getMessageId(update));
         }
+        TelegramBot.getInstance().filterQuery.remove(getChatId(update));
     }
 
     private void sendMessageForAllUsers() {

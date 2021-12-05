@@ -26,6 +26,6 @@ public class TimerOfNotification {
             delay = MINUTES.toMillis(1) - SECONDS.toMillis(now().getSecond());
         }
         timer.schedule(task, delay,MINUTES.toMillis(1));
-     // timer.schedule(task, 1000);
+    //timer.schedule(task, 1000);
     }
 }

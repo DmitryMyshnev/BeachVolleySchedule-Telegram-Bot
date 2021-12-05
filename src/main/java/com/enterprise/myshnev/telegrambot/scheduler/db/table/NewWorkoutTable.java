@@ -70,7 +70,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
                 NewWorkout workout = new NewWorkout();
                 workout.setUserId(res.getString(USER_ID));
                 workout.setFirstName(res.getString(FIRST_NAME));
-                workout.setLastName(res.getString(LAST_NAME));
+                String lastName = res.getString(LAST_NAME);
+                workout.setLastName(lastName.equals("null") ?"":lastName);
                 workout.setReserve(res.getBoolean(RESERVE));
                 list.add(workout);
             }
@@ -93,7 +94,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
                 NewWorkout workout = new NewWorkout();
                 workout.setUserId(res.getString(USER_ID));
                 workout.setFirstName(res.getString(FIRST_NAME));
-                workout.setLastName(res.getString(LAST_NAME));
+                String lastName = res.getString(LAST_NAME);
+                workout.setLastName(lastName.equals("null") ?"":lastName);
                 workout.setReserve(res.getBoolean(RESERVE));
                 res.getStatement().close();
                 res.close();
@@ -141,7 +143,7 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
 
     @Override
     public Integer count(String tableName) {
-        String query = String.format(COUNT.getQuery(), tableName);
+        String query = String.format(COUNT.getQuery()/* + " WHERE reserve = 0;"*/, tableName);
         ResultSet res = ConnectionDb.executeQuery(query);
         int count;
         try {

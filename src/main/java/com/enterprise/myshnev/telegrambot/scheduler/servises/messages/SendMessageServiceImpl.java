@@ -3,7 +3,10 @@ package com.enterprise.myshnev.telegrambot.scheduler.servises.messages;
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.MessageIdTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.MessageId;
+import com.enterprise.myshnev.telegrambot.scheduler.servises.ReceiveMessage;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
@@ -17,15 +20,13 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
-
 import java.io.File;
-import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
+
 
 @Service
 public class SendMessageServiceImpl implements SendMessageService {
+    public static Logger LOGGER = LogManager.getLogger(SendMessageServiceImpl.class);
     private final TelegramBot telegramBot;
     private final Map<String, List<Data>> messageId;
     private List<Data> dataList;
@@ -38,7 +39,7 @@ public class SendMessageServiceImpl implements SendMessageService {
         this.userService = userService;
         messageId = new HashMap<>();
         messageIdTable = new MessageIdTable();
-        if (!userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).isEmpty()) {
+      /*  if (!userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).isEmpty()) {
             List<MessageId> list = userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(m -> (MessageId) m).collect(Collectors.toList());
             for (MessageId messageId : list) {
                 List<Data> listOfData = new ArrayList<>();
@@ -53,7 +54,7 @@ public class SendMessageServiceImpl implements SendMessageService {
                     this.messageId.put(m.getChatId(), listOfData);
                 });
             }
-        }
+        }*/
     }
 
     @Override
@@ -77,11 +78,12 @@ public class SendMessageServiceImpl implements SendMessageService {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText(data.getMessage());
         sendMessage.setChatId(data.getChatId());
+        sendMessage.enableHtml(true);
         Integer id;
         if (data.getKeyBoard() != null)
             sendMessage.setReplyMarkup(data.getKeyBoard());
         try {
-            id = telegramBot.executeAsync(sendMessage).get().getMessageId();
+            id = telegramBot.execute(sendMessage).getMessageId();
             data.setMessageId(id);
             if (!messageId.containsKey(data.getChatId())) {
                 dataList = new ArrayList<>();
@@ -90,7 +92,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             } else {
                 messageId.get(data.getChatId()).add(data);
             }
-        } catch (TelegramApiException | ExecutionException | InterruptedException e) {
+        } catch (TelegramApiException  e) {
             e.printStackTrace();
             id = 0;
         }
@@ -111,7 +113,7 @@ public class SendMessageServiceImpl implements SendMessageService {
         try {
            telegramBot.execute(editMessage);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+           LOGGER.info(e.getMessage());
         }
     }
 

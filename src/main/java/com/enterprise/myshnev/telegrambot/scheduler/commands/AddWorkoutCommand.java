@@ -1,6 +1,7 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
@@ -60,9 +61,12 @@ public class AddWorkoutCommand implements Command {
                 command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[0];
 
                 if (command.equals("add_workout")) {
-                    message = "Введите ключевое слово <strong>add/</strong> и добавьте день недели и время через запятую.\nНапример: <strong>add/</strong><i>пн, 11:00</i>";
+                    message = "Введите ключевое слово <strong>add/</strong> и добавьте день недели, время и максимальное количество участников " +
+                            "через запятую.\nНапример: <strong>add/</strong><i>пн, 11:00, 4</i>\n" +
+                            "(можно не указывать кол-во участников, по умолчанию - 8)";
                     sendMessageService.sendMessage(chatId, message, null);
                 }
+                TelegramBot.getInstance().filterQuery.remove(getChatId(update));
             } else {
                 String text = getText(update).toLowerCase();
                 Pattern pattern = Pattern.compile("(add/)(\\s*)(пн|вт|ср|чт|пт|сб|вс)(\\s*)");
@@ -75,19 +79,26 @@ public class AddWorkoutCommand implements Command {
                     if (!matcher.find()) {
                         sendMessageService.sendMessage(chatId, "Отсутствует запятая или указан другой символ", null);
                     } else {
-                        pattern = Pattern.compile("(add/)(\\s*)(пн|вт|ср|чт|пт|сб|вс)(\\s*)(,)(\\s*)(2[0-3]|1\\d|\\d)(:)([0-5][0-9])(\\s*)$");
+                        pattern = Pattern.compile("(add/)(\\s*)(пн|вт|ср|чт|пт|сб|вс)(\\s*)(,)(\\s*)(2[0-3]|1\\d|\\d)(:)([0-5][0-9])(\\s*),*(\\d*)$");
                         matcher = pattern.matcher(text);
                         if (!matcher.find()) {
                             sendMessageService.sendMessage(chatId, "Отсутствует или неверно указано время. Укажите время в формате <i>часы:минуты</i>", null);
                         } else {
                             String weekOfDay = Objects.requireNonNull(text).trim().split("/")[1].trim().split(",")[0].trim();
                             String time = Objects.requireNonNull(text).split("/")[1].trim().split(",")[1].trim();
+                            String maxCount = null;
+                            if(text.split("/")[1].split(",").length == 3) {
+                                 maxCount = Objects.requireNonNull(text).split("/")[1].split(",")[2].trim();
+                            }
                             AtomicBoolean isExist = new AtomicBoolean(false);
                             workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
                                     .map(m -> (Workouts) m)
                                     .forEach(w -> isExist.set(w.getDayOfWeek().equals(weekOfDay) && w.getTime().equals(time)));
                             if (!isExist.get()) {
                                 Workouts workouts = new Workouts(chatId, weekOfDay, time);
+                                if(maxCount != null){
+                                    workouts.setMaxCountUser(Integer.parseInt(maxCount));
+                                }
                                 workoutService.save(WORKOUT.getTableName(), workouts, workoutsTable);
                                 sendMessageService.sendMessage(chatId, "✅ Тренировка добавлена!", null);
                             } else {
@@ -100,6 +111,7 @@ public class AddWorkoutCommand implements Command {
             }
 
         }
+
     }
     private  String getSuperAdminFromFileConfig() {
         Properties properties = new Properties();

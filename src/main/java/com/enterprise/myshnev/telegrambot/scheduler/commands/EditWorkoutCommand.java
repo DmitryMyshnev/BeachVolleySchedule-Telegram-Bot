@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
@@ -61,6 +62,7 @@ public class EditWorkoutCommand implements Command {
                         }
                     });
         }
+        TelegramBot.getInstance().filterQuery.remove(getChatId(update));
     }
 
     private String createMessage() {
@@ -84,7 +86,7 @@ public class EditWorkoutCommand implements Command {
             size.set(0);
         });
         if(!workout.isEmpty()) {
-            mess.append("\n Выберете для редкатирования: \n");
+            mess.append("\n Выберете для редактирования: \n");
         }
         return mess.toString();
     }

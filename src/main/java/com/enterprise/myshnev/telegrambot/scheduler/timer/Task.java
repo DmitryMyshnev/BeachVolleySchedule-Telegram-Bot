@@ -1,6 +1,7 @@
 package com.enterprise.myshnev.telegrambot.scheduler.timer;
 
 import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
+import com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.NewWorkoutTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
@@ -23,7 +24,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols.*;
 import static java.util.concurrent.TimeUnit.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils.*;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class Task extends TimerTask {
     private final SendMessageService sendMessageService;
     private final UserService userService;
     private final WorkoutService workoutService;
-    private final String  HOUR_OF_NOTIFICATION;
+    private  String  HOUR_OF_NOTIFICATION;
     private String message;
     private InlineKeyboardMarkup board;
     private final SimpleDateFormat formatOfWeek;
@@ -72,22 +73,21 @@ public class Task extends TimerTask {
         formatOfHour = new SimpleDateFormat("H:mm");
         workoutsTable = new WorkoutsTable();
         newWorkoutsTable = new NewWorkoutTable();
-        HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
+       // HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
     }
 
     @Override
     public void run() {
-
+        HOUR_OF_NOTIFICATION = SuperAdminUtils.TIME_OF_NOTIFICATION;
         workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream().map(w -> (Workouts) w).forEach(w -> {
             String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
             int dayOfNotification = (WEEK.get(w.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(w.getDayOfWeek()) - 1;
-           //int dayOfNotification = WEEK.get(w.getDayOfWeek());
+          // int dayOfNotification = WEEK.get(w.getDayOfWeek());
             int dayOfWorkout = WEEK.get(w.getDayOfWeek());
             if (Integer.parseInt(currentDayOfWeek) == dayOfNotification && formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
                 workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "1");
                 createNotification(w.getDayOfWeek(), w.getTime(), w.getMaxCountUser());
             }
-
             if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout &&  formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
                 stopTimerTack.breakWorkout(w.getDayOfWeek(), w.getTime(), w.getId());
 
@@ -98,10 +98,11 @@ public class Task extends TimerTask {
     private void createNotification(String dayOfWeek, String time, Integer maxPlayer) {
         Locale locale = new Locale("ru");
         String date =  new SimpleDateFormat("E d MMM",locale).format(System.currentTimeMillis() + DAYS.toMillis(1));
-        String callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + time + "/" + maxPlayer;
-        message = "Запись на тренировку в " + date + " в " + time + " открыта!\nКоличество свободных мест:    " + getSymbol(maxPlayer);
+        String callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + time + "/" + maxPlayer + "/join";
+        String  message = "Запись на тренировку в " + date + " в " + time + " открыта!\n " +
+                "Количество свободных мест: " + Symbols.getSymbol(maxPlayer) + "\n Список записавшихся:\n";
         workoutService.addTable(dayOfWeek + time, newWorkoutsTable);
-        userService.findAll(USERS.getTableName(), new UserTable()).stream().map(u -> (TelegramUser) u).collect(Collectors.toList()).forEach(user -> {
+        userService.findAll(USERS.getTableName(), new UserTable()).stream().map(TelegramUser.class::cast).collect(Collectors.toList()).forEach(user -> {
             if (user.isCoach()) {
                 board = builder().add("Отменить тренировку", "cancel_workout/" + dayOfWeek + "/" + time).create();
                 sendMessageService.sendMessage(new Data(user.getChatId(), message, board, time, dayOfWeek,maxPlayer, true));
