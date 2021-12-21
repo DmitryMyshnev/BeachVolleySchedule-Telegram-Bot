@@ -10,17 +10,13 @@ import java.util.Map;
 public interface SendMessageService {
     void sendMessage(String chatId, String message,InlineKeyboardMarkup keyBoard);
 
-    Integer sendMessage(Data data);
+    Integer sendMessage(String chatId, String message,String timeWorkout,String dayOfWeek,InlineKeyboardMarkup board);
 
     void editMessage(String chatId, Integer messageId, String message, InlineKeyboardMarkup keyBoard);
-
-    List<Data> getData(String chatId);
 
     boolean deleteWorkoutMessage(String chatId, Integer messageId);
 
     boolean deleteMessage(String chatId, Integer messageId);
-
-    void deleteMessageId(String chatId,Integer messageId);
 
     void  sendDocument(String chatId, File file);
 

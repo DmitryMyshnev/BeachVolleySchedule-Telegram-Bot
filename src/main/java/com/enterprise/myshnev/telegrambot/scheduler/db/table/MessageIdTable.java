@@ -4,6 +4,9 @@ import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.MessageId;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
@@ -21,7 +24,7 @@ public class MessageIdTable implements CrudDb<MessageId> {
     private static final String CHAT_ID = "chat_id";
     private static final String TIME = "time";
     private static final String DAY_OF_WEEK = "day_of_week";
-
+    public static Logger LOGGER = LogManager.getLogger(MessageIdTable.class);
     @Override
     public String addTable(String tableName) {
         return null;
@@ -70,13 +73,52 @@ public class MessageIdTable implements CrudDb<MessageId> {
     }
 
     @Override
-    public Optional<MessageId> findById(String tableName, String id) {
-        return Optional.empty();
+    public Optional<MessageId> findById(String tableName, String messasgeId) {
+        try {
+            String query = String.format(SELECT_WHERE.getQuery(), tableName, MESSAGE_ID, messasgeId);
+            ResultSet res = ConnectionDb.executeQuery(query);
+            if (res.next()) {
+                MessageId messageId = new MessageId();
+                messageId.setId(res.getInt(ID));
+                messageId.setMessageId(res.getInt(MESSAGE_ID));
+                messageId.setChatId(res.getString(CHAT_ID));
+                messageId.setTime(res.getString(TIME));
+                messageId.setDayOfWeek(res.getString(DAY_OF_WEEK));
+                res.getStatement().close();
+                res.close();
+                return Optional.of(messageId);
+            }
+            return Optional.empty();
+        } catch (SQLException e) {
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
+            return Optional.empty();
+        }
     }
 
     @Override
     public List<MessageId> findBy(String tableName, String column, Object arg) {
-        return null;
+        List<MessageId> list = new ArrayList<>();
+        try {
+            String query = String.format(SELECT_WHERE.getQuery(),tableName,column,arg);
+            ResultSet res = ConnectionDb.executeQuery(query);
+            while (res.next()) {
+                MessageId messageId = new MessageId();
+                messageId.setId(res.getInt(ID));
+                messageId.setMessageId(res.getInt(MESSAGE_ID));
+                messageId.setChatId(res.getString(CHAT_ID));
+                messageId.setTime(res.getString(TIME));
+                messageId.setDayOfWeek(res.getString(DAY_OF_WEEK));
+                list.add(messageId);
+            }
+            res.getStatement().close();
+            res.close();
+            return list;
+        } catch (SQLException e) {
+            LOGGER.error(e.getMessage());
+            LOGGER.error(e.getSQLState());
+        }
+        return list;
     }
 
     @Override

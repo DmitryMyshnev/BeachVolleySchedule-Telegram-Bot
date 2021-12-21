@@ -12,6 +12,7 @@ import java.util.List;
 
 
 import java.util.Objects;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
@@ -43,7 +44,10 @@ public class EditCommand implements Command{
                 .add("Удалить","changeWorkout/delete/"  + weekOfDay + "/" + time,true )
                 .add("⬅  Назад к расписанию","changeWorkout/back/" + weekOfDay + "/" + time ).create();
         sendMessageService.editMessage(getChatId(update),messageId ,message,board);
-        TelegramBot.getInstance().filterQuery.remove(getChatId(update));
+
+        if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
+            sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
+        }
     }
 
 }

@@ -9,27 +9,22 @@ import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutServ
 import org.apache.logging.log4j.LogManager;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
 
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -39,16 +34,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final String TOKEN;
     public final ReceiveMessage receiveMessage;
     public final Queue<Update> receiveQueue = new ConcurrentLinkedQueue<>();
-    public final Map<String, String> filterQuery;
-    public final Map<String, Map<String,Integer> > notifyMessageId;
-    public Map<String,Integer> listMessageId;
+    public final Queue<Message> notifyMessageId = new ConcurrentLinkedQueue<>();
     private static TelegramBot telegramBot;
+    private final AtomicReference<String> filterQuery = new AtomicReference<>();
 
     @Autowired
     public TelegramBot(UserService userService, WorkoutService workoutService) {
         BOT_USER_NAME = getBotConfigFromFile("botUserName".trim());
         TOKEN = getBotConfigFromFile("botToken".trim());
-        filterQuery = new ConcurrentHashMap<>();
 
         new ConnectionDb();
         CommandContainer commandContainer = new CommandContainer(new SendMessageServiceImpl(this, userService), userService, workoutService);
@@ -59,8 +52,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         receiver.setPriority(PRIORITY_FOR_RECEIVER);
         receiver.start();
         telegramBot = this;
-        notifyMessageId = new LinkedHashMap<>();
-        listMessageId = new LinkedHashMap<>();
     }
 
     @Override
@@ -77,33 +68,43 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         String chatId = getChatId(update);
         if (update.hasCallbackQuery()) {
-            if (filterQuery.containsKey(chatId)) {
-                if (!filterQuery.get(chatId).equals(getCallbackQuery(update))) {
-                    listMessageId.put(getCallbackQuery(update),sendNotify(chatId));
-                    notifyMessageId.put(chatId,listMessageId);
-                    receiveQueue.add(update);
+            if (filterQuery.get() != null) {
+                if (!filterQuery.toString().equals(getChatId(update) + getCallbackQuery(update))) {
+                    filterQuery.set(getChatId(update) + getCallbackQuery(update));
+                    Objects.requireNonNull(sendSystemMessage(chatId)).thenAccept(res -> {
+                        if (res != null) {
+                            notifyMessageId.add(res);
+                            receiveQueue.add(update);
+                        }
+                    });
                 }
             } else {
-                filterQuery.put(chatId, getCallbackQuery(update));
-                listMessageId.put(getCallbackQuery(update),sendNotify(chatId));
-                notifyMessageId.put(chatId,listMessageId);
-                receiveQueue.add(update);
+                filterQuery.set(getChatId(update) + getCallbackQuery(update));
+                Objects.requireNonNull(sendSystemMessage(chatId)).thenAccept(res -> {
+                    if (res != null) {
+                        notifyMessageId.add(res);
+                        receiveQueue.add(update);
+                    }
+                });
             }
-        }else {
+        } else {
             receiveQueue.add(update);
         }
+
     }
-    private Integer sendNotify(String chatId){
+
+    private CompletableFuture<Message> sendSystemMessage(String chatId) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText("в обработке...⏳");
         sendMessage.setChatId(chatId);
         try {
-            return executeAsync(sendMessage).get().getMessageId();
-        } catch (TelegramApiException | ExecutionException | InterruptedException e) {
-          LOGGER.info(e.getMessage());
+            return executeAsync(sendMessage);
+        } catch (TelegramApiException e) {
+            LOGGER.info(e.getMessage());
+            return null;
         }
-       return null;
     }
+
     public static TelegramBot getInstance() {
         return telegramBot;
     }

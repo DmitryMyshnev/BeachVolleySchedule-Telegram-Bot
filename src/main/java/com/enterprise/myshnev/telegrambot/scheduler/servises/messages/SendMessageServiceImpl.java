@@ -3,7 +3,6 @@ package com.enterprise.myshnev.telegrambot.scheduler.servises.messages;
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.MessageIdTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.MessageId;
-import com.enterprise.myshnev.telegrambot.scheduler.servises.ReceiveMessage;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,23 +12,19 @@ import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-
-
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
 import java.io.File;
-import java.util.*;
+
 
 
 @Service
 public class SendMessageServiceImpl implements SendMessageService {
     public static Logger LOGGER = LogManager.getLogger(SendMessageServiceImpl.class);
     private final TelegramBot telegramBot;
-    private final Map<String, List<Data>> messageId;
-    private List<Data> dataList;
     private final UserService userService;
     private final MessageIdTable messageIdTable;
 
@@ -37,24 +32,7 @@ public class SendMessageServiceImpl implements SendMessageService {
     public SendMessageServiceImpl(TelegramBot telegramBot, UserService userService) {
         this.telegramBot = telegramBot;
         this.userService = userService;
-        messageId = new HashMap<>();
         messageIdTable = new MessageIdTable();
-      /*  if (!userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).isEmpty()) {
-            List<MessageId> list = userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(m -> (MessageId) m).collect(Collectors.toList());
-            for (MessageId messageId : list) {
-                List<Data> listOfData = new ArrayList<>();
-                list.stream().filter(f -> (f.getChatId().equals(messageId.getChatId()))).forEach(m -> {
-                    Data data = new Data();
-                    data.setChatId(m.getChatId());
-                    data.setMessageId(m.getMessageId());
-                    data.setTimeWorkout(m.getTime());
-                    data.setDayOfWeek(m.getDayOfWeek());
-                    data.setMaxUser(8);
-                    listOfData.add(data);
-                    this.messageId.put(m.getChatId(), listOfData);
-                });
-            }
-        }*/
     }
 
     @Override
@@ -67,36 +45,29 @@ public class SendMessageServiceImpl implements SendMessageService {
             sendMessage.setReplyMarkup(keyBoard);
         }
         try {
-            telegramBot.execute(sendMessage).getMessageId();
+          telegramBot.execute(sendMessage).getMessageId();
+
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
         }
     }
 
     @Override
-    public Integer sendMessage(Data data) {
+    public Integer sendMessage(String chatId, String message,String timeWorkout,String dayOfWeek,InlineKeyboardMarkup board) {
         SendMessage sendMessage = new SendMessage();
-        sendMessage.setText(data.getMessage());
-        sendMessage.setChatId(data.getChatId());
+        sendMessage.setText(message);
+        sendMessage.setChatId(chatId);
         sendMessage.enableHtml(true);
         Integer id;
-        if (data.getKeyBoard() != null)
-            sendMessage.setReplyMarkup(data.getKeyBoard());
+        if (board != null)
+            sendMessage.setReplyMarkup(board);
         try {
             id = telegramBot.execute(sendMessage).getMessageId();
-            data.setMessageId(id);
-            if (!messageId.containsKey(data.getChatId())) {
-                dataList = new ArrayList<>();
-                dataList.add(data);
-                messageId.put(data.getChatId(), dataList);
-            } else {
-                messageId.get(data.getChatId()).add(data);
-            }
         } catch (TelegramApiException  e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
             id = 0;
         }
-        userService.save(MESSAGE_ID.getTableName(), new MessageId(id, data.getChatId(), data.getTimeWorkout(), data.getDayOfWeek()), messageIdTable);
+        userService.save(MESSAGE_ID.getTableName(), new MessageId(id, chatId, timeWorkout, dayOfWeek), messageIdTable);
         return id;
     }
 
@@ -117,13 +88,6 @@ public class SendMessageServiceImpl implements SendMessageService {
         }
     }
 
-
-
-    @Override
-    public List<Data> getData(String chatId) {
-        return messageId.getOrDefault(chatId, List.of());
-    }
-
     @Override
     public boolean deleteWorkoutMessage(String chatId, Integer messageId) {
         Boolean isDelete;
@@ -133,22 +97,13 @@ public class SendMessageServiceImpl implements SendMessageService {
         try {
             isDelete = telegramBot.execute(deleteMessage);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
             isDelete = false;
         }
-        deleteMessageId(chatId, messageId);
+        userService.delete(MESSAGE_ID.getTableName(), messageId.toString(), messageIdTable);
         return isDelete;
     }
 
-    @Override
-    public void deleteMessageId(String chatId, Integer messageId) {
-        if (this.messageId.containsKey(chatId)) {
-            if (this.messageId.get(chatId).stream().anyMatch(d -> (d.getMessageId().equals(messageId)))) {
-                this.messageId.get(chatId).removeIf(d -> (d.getMessageId().equals(messageId)));
-                userService.delete(MESSAGE_ID.getTableName(), messageId.toString(), messageIdTable);
-            }
-        }
-    }
 
     @Override
     public boolean deleteMessage(String chatId, Integer messageId) {
@@ -159,7 +114,7 @@ public class SendMessageServiceImpl implements SendMessageService {
         try {
             isDelete = telegramBot.execute(deleteMessage);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
             isDelete = false;
         }
         return isDelete;
@@ -174,7 +129,7 @@ public class SendMessageServiceImpl implements SendMessageService {
         try {
             telegramBot.execute(sendDocument);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
         }
     }
 }

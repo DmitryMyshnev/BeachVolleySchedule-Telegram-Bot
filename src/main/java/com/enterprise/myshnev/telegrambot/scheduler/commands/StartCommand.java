@@ -115,15 +115,18 @@ public class StartCommand implements Command {
                 .forEach(w -> {
                     timeOfWorkout = w.getTime();
                     dayOfWeek = w.getDayOfWeek();
-                    callback = ENJOY.getCommandName() + "/" + w.getDayOfWeek() + "/" + timeOfWorkout + "/" + w.getMaxCountUser() + "/join";
-                    List<NewWorkout> signedUpUsers = workoutService.findAll(w.getDayOfWeek() + w.getTime(), newWorkoutTable).stream()
-                            .map(NewWorkout.class::cast).collect(Collectors.toList());
-                    long freePlaces = w.getMaxCountUser() - signedUpUsers.stream().filter(r -> !r.isReserve()).count();
-                    mess.append(createListUsers(signedUpUsers,(int) freePlaces,chatId));
-                    buttonText.append(freePlaces <=0 ? "Записаться в резерв":"Записаться");
-                    board = builder().add(buttonText.toString(), callback).create();
-                    sendMessageService.sendMessage(new Data(chatId, mess.toString(), board, timeOfWorkout, dayOfWeek, w.getMaxCountUser(), false));
-                    buttonText.delete(0, buttonText.length());
+                    boolean hasMessageIdTable = userService.findByChatId(dayOfWeek + timeOfWorkout, chatId, new MessageIdTable()).isEmpty();
+                    if(!hasMessageIdTable) {
+                        callback = ENJOY.getCommandName() + "/" + w.getDayOfWeek() + "/" + timeOfWorkout + "/" + w.getMaxCountUser() + "/join";
+                        List<NewWorkout> signedUpUsers = workoutService.findAll(w.getDayOfWeek() + w.getTime(), newWorkoutTable).stream()
+                                .map(NewWorkout.class::cast).collect(Collectors.toList());
+                        long freePlaces = w.getMaxCountUser() - signedUpUsers.stream().filter(r -> !r.isReserve()).count();
+                        mess.append(createListUsers(signedUpUsers, (int) freePlaces, chatId));
+                        buttonText.append(freePlaces <= 0 ? "Записаться в резерв" : "Записаться");
+                        board = builder().add(buttonText.toString(), callback).create();
+                        sendMessageService.sendMessage(chatId, mess.toString(), board);
+                        buttonText.delete(0, buttonText.length());
+                    }
                 });
     }
     private String createListUsers(List<NewWorkout> users, int places, String chatId) {

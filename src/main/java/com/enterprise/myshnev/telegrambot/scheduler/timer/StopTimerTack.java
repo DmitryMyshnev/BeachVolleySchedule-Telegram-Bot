@@ -53,15 +53,14 @@ public class StopTimerTack {
                     " в " + timeWorkout +
                     " закрыта!\nСостав группы:\n" + getAllUserWhoGo(weekOfDay + timeWorkout);
             userService.findAll(USERS.getTableName(), userTable).stream()
-                    .map(TelegramUser.class::cast)
+                    .map(TelegramUser.class::cast).filter(TelegramUser::isActive)
                     .forEach(user -> {
                         Optional<MessageId> messageId = userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast)
                                 .filter(f -> f.getChatId().equals(user.getChatId()) && f.getTime().equals(timeWorkout) && f.getDayOfWeek().equals(weekOfDay))
                                 .findFirst();
-                        messageId.ifPresent(value -> workoutService.findByChatId(weekOfDay + timeWorkout, user.getChatId(), newWorkoutTable).stream()
+                        messageId.ifPresent(value -> workoutService.findByChatId(weekOfDay + timeWorkout, value.getChatId(), newWorkoutTable).stream()
                                 .map(NewWorkout.class::cast).findFirst()
                                 .ifPresentOrElse(p -> {
-
                                     if (!p.isReserve()) {
                                         sendMessageService.editMessage(user.getChatId(), value.getMessageId(), message, null);
                                         // sendMessageService.deleteMessageId(user.getChatId(), messageId.get().getMessageId());
@@ -83,7 +82,9 @@ public class StopTimerTack {
                     });
             workoutService.update(workoutsTable, WORKOUT.getTableName(), id.toString(), "active", "0");
             workoutService.dropTable(weekOfDay + timeWorkout, newWorkoutTable);
-            TelegramBot.getInstance().listMessageId.clear();
+
+
+            TelegramBot.getInstance().notifyMessageId.clear();
         }
     }
 

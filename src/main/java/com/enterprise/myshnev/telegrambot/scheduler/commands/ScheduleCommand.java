@@ -51,9 +51,9 @@ public class ScheduleCommand implements Command {
                     }
                 },()-> userService.findByChatId(ADMIN.getTableName(), getChatId(update),new AdminTable()).map(TelegramUser.class::cast)
                         .ifPresent(admin-> getWorkoutsForCoach(update)));
-        if(getChatId(update).equals(SUPER_ADMIN)){
+      /*  if(getChatId(update).equals(SUPER_ADMIN)){
             getWorkoutsForCoach(update);
-        }
+        }*/
     }
 
     private void getWorkoutsForUser(Update update) {

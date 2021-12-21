@@ -11,6 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -44,7 +45,7 @@ public class EditWorkoutCommand implements Command {
             message = createMessage();
             getWorkouts();
             sendMessageService.editMessage(chatId, messageId, message, board);
-            return;
+
         }
         if (command.equals("delete")) {
             workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
@@ -62,7 +63,10 @@ public class EditWorkoutCommand implements Command {
                         }
                     });
         }
-        TelegramBot.getInstance().filterQuery.remove(getChatId(update));
+
+        if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
+            sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
+        }
     }
 
     private String createMessage() {

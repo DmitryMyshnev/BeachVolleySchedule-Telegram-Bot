@@ -19,20 +19,13 @@ import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutServ
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.util.ResourceUtils;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols.*;
 import static java.util.concurrent.TimeUnit.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-
 
 public class Task extends TimerTask {
 
@@ -44,24 +37,24 @@ public class Task extends TimerTask {
             .put("пт", 5)
             .put("сб", 6)
             .put("вс", 7)
-            .put("mo",1)
-            .put("tu",2)
-            .put("wed",3)
-            .put("thu",4)
-            .put("fri",5)
-            .put("sat",6)
-            .put("sun",7).build();
+            .put("mo", 1)
+            .put("tu", 2)
+            .put("wed", 3)
+            .put("thu", 4)
+            .put("fri", 5)
+            .put("sat", 6)
+            .put("sun", 7).build();
     private final SendMessageService sendMessageService;
     private final UserService userService;
     private final WorkoutService workoutService;
-    private  String  HOUR_OF_NOTIFICATION;
-    private String message;
+    private String HOUR_OF_NOTIFICATION;
     private InlineKeyboardMarkup board;
     private final SimpleDateFormat formatOfWeek;
     private final StopTimerTack stopTimerTack;
     private final SimpleDateFormat formatOfHour;
     private final WorkoutsTable workoutsTable;
     private final NewWorkoutTable newWorkoutsTable;
+    private final UserTable userTable;
     public static Logger LOGGER = LogManager.getLogger(Task.class);
 
     public Task(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
@@ -73,7 +66,8 @@ public class Task extends TimerTask {
         formatOfHour = new SimpleDateFormat("H:mm");
         workoutsTable = new WorkoutsTable();
         newWorkoutsTable = new NewWorkoutTable();
-       // HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
+        userTable = new UserTable();
+        // HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
     }
 
     @Override
@@ -82,34 +76,33 @@ public class Task extends TimerTask {
         workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream().map(w -> (Workouts) w).forEach(w -> {
             String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
             int dayOfNotification = (WEEK.get(w.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(w.getDayOfWeek()) - 1;
-          // int dayOfNotification = WEEK.get(w.getDayOfWeek());
+            // int dayOfNotification = WEEK.get(w.getDayOfWeek());
             int dayOfWorkout = WEEK.get(w.getDayOfWeek());
             if (Integer.parseInt(currentDayOfWeek) == dayOfNotification && formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
                 workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "1");
                 createNotification(w.getDayOfWeek(), w.getTime(), w.getMaxCountUser());
             }
-            if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout &&  formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
+            if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout && formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
                 stopTimerTack.breakWorkout(w.getDayOfWeek(), w.getTime(), w.getId());
-
             }
         });
     }
 
     private void createNotification(String dayOfWeek, String time, Integer maxPlayer) {
         Locale locale = new Locale("ru");
-        String date =  new SimpleDateFormat("E d MMM",locale).format(System.currentTimeMillis() + DAYS.toMillis(1));
+        String date = new SimpleDateFormat("E d MMM", locale).format(System.currentTimeMillis() + DAYS.toMillis(1));
         String callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + time + "/" + maxPlayer + "/join";
-        String  message = "Запись на тренировку в " + date + " в " + time + " открыта!\n " +
+        String message = "Запись на тренировку в " + date + " в " + time + " открыта!\n " +
                 "Количество свободных мест: " + Symbols.getSymbol(maxPlayer) + "\n Список записавшихся:\n";
         workoutService.addTable(dayOfWeek + time, newWorkoutsTable);
-        userService.findAll(USERS.getTableName(), new UserTable()).stream().map(TelegramUser.class::cast).collect(Collectors.toList()).forEach(user -> {
+        userService.findAll(USERS.getTableName(), userTable).stream().map(TelegramUser.class::cast).collect(Collectors.toList()).forEach(user -> {
             if (user.isCoach()) {
                 board = builder().add("Отменить тренировку", "cancel_workout/" + dayOfWeek + "/" + time).create();
-                sendMessageService.sendMessage(new Data(user.getChatId(), message, board, time, dayOfWeek,maxPlayer, true));
+                sendMessageService.sendMessage(user.getChatId(), message, time, dayOfWeek, board);
             } else {
-                if(user.isActive()) {
+                if (user.isActive()) {
                     board = builder().add("Записаться", callback).create();
-                    sendMessageService.sendMessage(new Data(user.getChatId(), message, board, time, dayOfWeek, maxPlayer, false));
+                    sendMessageService.sendMessage(user.getChatId(), message, time, dayOfWeek, board);
                 }
             }
         });

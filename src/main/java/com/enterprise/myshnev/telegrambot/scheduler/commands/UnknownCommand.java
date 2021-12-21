@@ -14,7 +14,7 @@ public class UnknownCommand implements Command {
     private final UserService userService;
     private final UserTable userTable;
 
-    public UnknownCommand(SendMessageService sendMessageService,UserService userService) {
+    public UnknownCommand(SendMessageService sendMessageService, UserService userService) {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
         userTable = new UserTable();
@@ -22,24 +22,31 @@ public class UnknownCommand implements Command {
 
     @Override
     public void execute(Update update) {
-        userService.findByChatId(USERS.getTableName(),getChatId(update),userTable).stream().
-                map(u->(TelegramUser)u).findFirst().ifPresent(user->{
-                    if(!user.isCoach()){
-                        sendMessageService.deleteMessage(getChatId(update), getMessageId(update));
-                    }else {
-                        if(getText(update).startsWith("#")){
-                            userService.findAll(USERS.getTableName(),userTable).stream()
-                                    .map(m->(TelegramUser)m)
-                                    .forEach(u->{
-                                        if(!u.isCoach()) {
-                                            String message = "<strong>" + user.getFirstName() + " " + user.getLastName() + ":</strong>\n" + getText(update).replace('#',' ');
-                                            sendMessageService.sendMessage(u.getChatId(), message, null);
-                                        }
-                                    });
-                        }else {
-                            sendMessageService.deleteWorkoutMessage(getChatId(update), getMessageId(update));
-                        }
-                    }
+        userService.findByChatId(USERS.getTableName(), getChatId(update), userTable).stream().
+                map(u -> (TelegramUser) u).findFirst().ifPresent(user -> {
+            if (!user.isCoach()) {
+                sendMessageService.deleteMessage(getChatId(update), getMessageId(update));
+            } else {
+                if (getText(update).startsWith("#")) {
+                    userService.findAll(USERS.getTableName(), userTable).stream()
+                            .map(TelegramUser.class::cast).filter(TelegramUser::isActive)
+                            .forEach(u -> {
+                                if (!u.isCoach()) {
+                                    String message;
+                                    if (user.getLastName() == null) {
+                                        message = "<strong>" + user.getFirstName() +
+                                                " " + user.getLastName() + ":</strong>\n" + getText(update).replace('#', ' ');
+                                    } else {
+                                        message = "<strong>" + user.getFirstName() +
+                                                " " + ":</strong>\n" + getText(update).replace('#', ' ');
+                                    }
+                                    sendMessageService.sendMessage(u.getChatId(), message, null);
+                                }
+                            });
+                } else {
+                    sendMessageService.deleteWorkoutMessage(getChatId(update), getMessageId(update));
+                }
+            }
         });
 
     }

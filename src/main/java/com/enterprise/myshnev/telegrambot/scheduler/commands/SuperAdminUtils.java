@@ -12,7 +12,7 @@ import java.util.Properties;
 
 public class SuperAdminUtils {
     private static Logger LOGGER = LogManager.getLogger(SuperAdminUtils.class);
-    public static String TIME_OF_NOTIFICATION = "14:00";
+    public static String TIME_OF_NOTIFICATION = getTimeNotificationFromFileConfig();
 
     public static String getIdSuperAdminFromFileConfig() {
         Properties properties = new Properties();

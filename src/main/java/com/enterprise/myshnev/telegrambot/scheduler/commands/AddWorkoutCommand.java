@@ -4,7 +4,6 @@ package com.enterprise.myshnev.telegrambot.scheduler.commands;
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
 import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
@@ -20,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,7 +66,10 @@ public class AddWorkoutCommand implements Command {
                             "(можно не указывать кол-во участников, по умолчанию - 8)";
                     sendMessageService.sendMessage(chatId, message, null);
                 }
-                TelegramBot.getInstance().filterQuery.remove(getChatId(update));
+
+                if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
+                    sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
+                }
             } else {
                 String text = getText(update).toLowerCase();
                 Pattern pattern = Pattern.compile("(add/)(\\s*)(пн|вт|ср|чт|пт|сб|вс)(\\s*)");

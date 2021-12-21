@@ -21,7 +21,10 @@ public class CommandUtils {
         if (update.hasMessage()) {
             return update.getMessage().getChatId().toString();
         } else {
+            if (update.getCallbackQuery() == null)
+                return "";
             return update.getCallbackQuery().getMessage().getChatId().toString();
+
         }
     }
 
@@ -67,10 +70,10 @@ public class CommandUtils {
     }
 
     public static String getCallbackQuery(Update update) {
-        if (update.hasCallbackQuery()) {
+        if (update.hasCallbackQuery() && update.getCallbackQuery() != null) {
             return update.getCallbackQuery().getData();
         } else
-            return null;
+            return "";
     }
 
 }
