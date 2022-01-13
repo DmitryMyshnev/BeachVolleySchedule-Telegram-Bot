@@ -27,6 +27,7 @@ public class StopCommand  implements Command{
         userService.findByChatId(COACH.getTableName(), getChatId(update),coachTable).ifPresentOrElse(p->{
             sendMessageService.deleteMessage(getChatId(update),getMessageId(update));
         },()->{
+
             userService.update(userTable, USERS.getTableName(), getChatId(update),"active","0");
             String  message = "❌ Уведомления отключены! \n Вам не будут приходить сообщения о начале записи на тренировки.\n" +
                     "/start - для включения уведомлений.";

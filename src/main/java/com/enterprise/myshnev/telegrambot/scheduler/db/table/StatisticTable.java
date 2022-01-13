@@ -3,6 +3,8 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Statistic;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.INSERT_INTO;
 import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.SELECT_ALL;
@@ -22,6 +24,7 @@ public class StatisticTable implements CrudDb<Statistic> {
     private static final String WORKOUT = "workout";
     private static final String ACTION = "action";
     private static final String DATE = "date";
+    public static Logger LOGGER = LogManager.getLogger(StatisticTable.class);
 
     @Override
     public String addTable(String tableName) {
@@ -39,7 +42,8 @@ public class StatisticTable implements CrudDb<Statistic> {
         try {
             ConnectionDb.executeUpdate(query);
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return e.getSQLState();
         }
         return OK.getStatus();
@@ -47,9 +51,8 @@ public class StatisticTable implements CrudDb<Statistic> {
 
     @Override
     public List<Statistic> findAll(String tableName) {
-        try {
-            String query = String.format(SELECT_ALL.getQuery(), tableName);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_ALL.getQuery(), tableName);
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
             List<Statistic> list = new ArrayList<>();
             while (Objects.requireNonNull(res).next()) {
                 Statistic stat = new Statistic();
@@ -65,7 +68,8 @@ public class StatisticTable implements CrudDb<Statistic> {
             res.close();
             return list;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return null;
         }
     }

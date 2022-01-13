@@ -3,13 +3,8 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.MessageId;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import static com.enterprise.myshnev.telegrambot.scheduler.db.CommandQuery.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.FAIL;
+import static com.enterprise.myshnev.telegrambot.scheduler.db.DbStatusResponse.OK;
 
 public class MessageIdTable implements CrudDb<MessageId> {
     private static final String ID = "id";
@@ -43,7 +42,8 @@ public class MessageIdTable implements CrudDb<MessageId> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -67,31 +67,31 @@ public class MessageIdTable implements CrudDb<MessageId> {
             res.close();
             return list;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return List.of();
         }
     }
 
     @Override
-    public Optional<MessageId> findById(String tableName, String messasgeId) {
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(), tableName, MESSAGE_ID, messasgeId);
-            ResultSet res = ConnectionDb.executeQuery(query);
+    public Optional<MessageId> findById(String tableName, String messageId) {
+        String query = String.format(SELECT_WHERE.getQuery(), tableName, MESSAGE_ID, messageId);
+        try (  ResultSet res = ConnectionDb.executeQuery(query)){
             if (res.next()) {
-                MessageId messageId = new MessageId();
-                messageId.setId(res.getInt(ID));
-                messageId.setMessageId(res.getInt(MESSAGE_ID));
-                messageId.setChatId(res.getString(CHAT_ID));
-                messageId.setTime(res.getString(TIME));
-                messageId.setDayOfWeek(res.getString(DAY_OF_WEEK));
+                MessageId id = new MessageId();
+                id.setId(res.getInt(ID));
+                id.setMessageId(res.getInt(MESSAGE_ID));
+                id.setChatId(res.getString(CHAT_ID));
+                id.setTime(res.getString(TIME));
+                id.setDayOfWeek(res.getString(DAY_OF_WEEK));
                 res.getStatement().close();
                 res.close();
-                return Optional.of(messageId);
+                return Optional.of(id);
             }
             return Optional.empty();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return Optional.empty();
         }
     }
@@ -99,9 +99,8 @@ public class MessageIdTable implements CrudDb<MessageId> {
     @Override
     public List<MessageId> findBy(String tableName, String column, Object arg) {
         List<MessageId> list = new ArrayList<>();
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(),tableName,column,arg);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_WHERE.getQuery(),tableName,column,arg);
+        try (ResultSet res = ConnectionDb.executeQuery(query)){
             while (res.next()) {
                 MessageId messageId = new MessageId();
                 messageId.setId(res.getInt(ID));
@@ -115,8 +114,8 @@ public class MessageIdTable implements CrudDb<MessageId> {
             res.close();
             return list;
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
         }
         return list;
     }
@@ -133,6 +132,8 @@ public class MessageIdTable implements CrudDb<MessageId> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -140,15 +141,15 @@ public class MessageIdTable implements CrudDb<MessageId> {
     @Override
     public Integer count(String tableName) {
         String query = String.format(COUNT.getQuery(), tableName);
-        ResultSet res = ConnectionDb.executeQuery(query);
         int count;
-        try {
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
             count = Objects.requireNonNull(res).getInt("total");
             res.getStatement().close();
             res.close();
             return count;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
         }
         return 0;
     }

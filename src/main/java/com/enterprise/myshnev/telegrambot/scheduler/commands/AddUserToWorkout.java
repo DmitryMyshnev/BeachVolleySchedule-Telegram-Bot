@@ -75,9 +75,9 @@ public class AddUserToWorkout implements Command {
         timeOfWorkout = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
         maxSize = Integer.parseInt(Objects.requireNonNull(getCallbackQuery(update)).split("/")[3]);
         workoutTableName = dayOfWeek + timeOfWorkout;
-        userService.findAll(USERS.getTableName(), userTable).stream().map(TelegramUser.class::cast).filter(TelegramUser::isCoach).findFirst().ifPresent(coach -> {
-            coachChatId = coach.getChatId();
-        });
+        userService.findAll(USERS.getTableName(), userTable).stream().map(TelegramUser.class::cast)
+                .filter(TelegramUser::isCoach)
+                .findFirst().ifPresent(coach -> coachChatId = coach.getChatId());
         String command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[4];
 
         if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
@@ -87,7 +87,7 @@ public class AddUserToWorkout implements Command {
                 sendMessageService.deleteMessage(msg.getChatId().toString(), msg.getMessageId());
             }
         }
-        if (!validWorkout(workoutTableName,getMessageId(update))) {
+        if (!validWorkout(workoutTableName, getMessageId(update))) {
             return;
         }
         long countNotReserve = workoutService.findAll(workoutTableName, newWorkoutTable).stream().map(NewWorkout.class::cast)
@@ -130,7 +130,6 @@ public class AddUserToWorkout implements Command {
                         }
                         callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/" + maxSize + "/cancel";
                         board = builder().add("Отмена", callback).create();
-
                     }
                 });
         workoutList = workoutService.findAll(workoutTableName, newWorkoutTable).stream()
@@ -178,26 +177,27 @@ public class AddUserToWorkout implements Command {
     private void editMessageForAllUsers(List<NewWorkout> users, String chatId) {
         AtomicReference<InlineKeyboardMarkup> board = new AtomicReference<>();
         AtomicReference<String> msg = new AtomicReference<>();
-        userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast).forEach(user -> {
+        userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast)
+                .filter(f -> (f.getTime().equals(timeOfWorkout) && f.getDayOfWeek().equals(dayOfWeek)))
+                .forEach(user -> {
+                    msg.set(createListUsers(users, freePlaces, user.getChatId()));
 
-            msg.set(createListUsers(users, freePlaces, user.getChatId()));
-
-            if (user.getChatId().equals(coachChatId)) {
-                board.set(builder().add("Отменить тренировку", "cancel_workout/" + dayOfWeek + "/" + timeOfWorkout).create());
-                sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
-            } else {
-                if (!user.getChatId().equals(chatId)) {
-                    workoutService.findByChatId(workoutTableName, user.getChatId(), newWorkoutTable).ifPresentOrElse(p -> {
-                        board.set(builder().add("Отмена", ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/" + maxSize + "/cancel").create());
+                    if (user.getChatId().equals(coachChatId)) {
+                        board.set(builder().add("Отменить тренировку", "cancel_workout/" + user.getDayOfWeek() + "/" + user.getTime()).create());
                         sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
-                    }, () -> {
-                        String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
-                        board.set(builder().add(text, ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/" + maxSize + "/join").create());
-                        sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
-                    });
-                }
-            }
-        });
+                    } else {
+                        if (!user.getChatId().equals(chatId)) {
+                            workoutService.findByChatId(workoutTableName, user.getChatId(), newWorkoutTable).ifPresentOrElse(p -> {
+                                board.set(builder().add("Отмена", ENJOY.getCommandName() + "/" + user.getDayOfWeek() + "/" + user.getTime() + "/" + maxSize + "/cancel").create());
+                                sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
+                            }, () -> {
+                                String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
+                                board.set(builder().add(text, ENJOY.getCommandName() + "/" + user.getDayOfWeek() + "/" + user.getTime() + "/" + maxSize + "/join").create());
+                                sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
+                            });
+                        }
+                    }
+                });
     }
 
     private NewWorkout createEntity(Update update, boolean reserve) {

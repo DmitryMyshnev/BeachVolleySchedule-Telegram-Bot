@@ -34,8 +34,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             try {
                 ConnectionDb.executeUpdate(query);
             } catch (SQLException e) {
-                LOGGER.error(e.getMessage());
-                LOGGER.error(e.getSQLState());
+                LOGGER.info(e.getMessage());
+                LOGGER.info(e.getSQLState());
             }
             return OK.getStatus();
         } else
@@ -44,9 +44,8 @@ public class UserTable implements CrudDb<TelegramUser> {
 
     @Override
     public Optional<TelegramUser> findById(String tableName,String id) {
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(), tableName, CHAT_ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_WHERE.getQuery(), tableName, CHAT_ID, id);
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
             if (res.next()) {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
@@ -61,8 +60,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             }
             return Optional.empty();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return Optional.empty();
         }
     }
@@ -79,8 +78,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return e.getSQLState();
         }
     }
@@ -92,17 +91,16 @@ public class UserTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return e.getSQLState();
         }
     }
 
     @Override
     public List<TelegramUser> findAll(String tableName) {
-        try {
-            String query = String.format(SELECT_ALL.getQuery(), tableName);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_ALL.getQuery(), tableName);
+        try (  ResultSet res = ConnectionDb.executeQuery(query)){
             List<TelegramUser> list = new ArrayList<>();
             while (res.next()) {
                 TelegramUser user = new TelegramUser();
@@ -118,8 +116,8 @@ public class UserTable implements CrudDb<TelegramUser> {
             res.close();
             return list;
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return null;
         }
     }
@@ -127,15 +125,14 @@ public class UserTable implements CrudDb<TelegramUser> {
     @Override
     public Integer count(String tableName) {
         String query = String.format(COUNT.getQuery(), tableName);
-        ResultSet res = ConnectionDb.executeQuery(query);
-        try {
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
             while (res.next()){
                 return  res.getInt("total");
             }
         }
       catch (SQLException e){
-          LOGGER.error(e.getMessage());
-          LOGGER.error(e.getSQLState());
+          LOGGER.info(e.getMessage());
+          LOGGER.info(e.getSQLState());
       }
         return 0;
     }

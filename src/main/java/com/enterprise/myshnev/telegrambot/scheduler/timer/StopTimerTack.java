@@ -53,23 +53,24 @@ public class StopTimerTack {
                     " в " + timeWorkout +
                     " закрыта!\nСостав группы:\n" + getAllUserWhoGo(weekOfDay + timeWorkout);
             userService.findAll(USERS.getTableName(), userTable).stream()
-                    .map(TelegramUser.class::cast).filter(TelegramUser::isActive)
+                    .map(TelegramUser.class::cast)
                     .forEach(user -> {
-                        Optional<MessageId> messageId = userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast)
+                        Optional<MessageId> messageId = userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream()
+                                .map(MessageId.class::cast)
                                 .filter(f -> f.getChatId().equals(user.getChatId()) && f.getTime().equals(timeWorkout) && f.getDayOfWeek().equals(weekOfDay))
                                 .findFirst();
-                        messageId.ifPresent(value -> workoutService.findByChatId(weekOfDay + timeWorkout, value.getChatId(), newWorkoutTable).stream()
+                        messageId.ifPresent(value -> workoutService
+                                .findByChatId(weekOfDay + timeWorkout, value.getChatId(), newWorkoutTable).stream()
                                 .map(NewWorkout.class::cast).findFirst()
                                 .ifPresentOrElse(p -> {
                                     if (!p.isReserve()) {
                                         sendMessageService.editMessage(user.getChatId(), value.getMessageId(), message, null);
-                                        // sendMessageService.deleteMessageId(user.getChatId(), messageId.get().getMessageId());
                                         sendMessageService.sendMessage(user.getChatId(), "❗ Напоминание.\n " + "В " + timeWorkout +
                                                 " у Вас тренировка!\n ", null);
                                     } else {
                                         sendMessageService.deleteWorkoutMessage(user.getChatId(), value.getMessageId());
                                     }
-                                    userService.delete(MESSAGE_ID.getTableName(), value.getMessageId().toString(),messageIdTable);
+                                    userService.delete(MESSAGE_ID.getTableName(), value.getMessageId().toString(), messageIdTable);
 
                                 }, () -> {
                                     if (!user.isCoach()) {
@@ -83,11 +84,9 @@ public class StopTimerTack {
             workoutService.update(workoutsTable, WORKOUT.getTableName(), id.toString(), "active", "0");
             workoutService.dropTable(weekOfDay + timeWorkout, newWorkoutTable);
 
-
             TelegramBot.getInstance().notifyMessageId.clear();
         }
     }
-
 
     private String getAllUserWhoGo(String tableName) {
         StringBuilder list = new StringBuilder();

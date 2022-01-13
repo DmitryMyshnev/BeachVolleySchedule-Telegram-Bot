@@ -14,6 +14,9 @@ public class Coach {
         this.lastName = lastName;
     }
 
+    public Coach() {
+    }
+
     @Override
     public String toString() {
         return  "'" + chatId +

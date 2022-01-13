@@ -24,6 +24,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
@@ -36,7 +37,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     public final Queue<Update> receiveQueue = new ConcurrentLinkedQueue<>();
     public final Queue<Message> notifyMessageId = new ConcurrentLinkedQueue<>();
     private static TelegramBot telegramBot;
-    private final AtomicReference<String> filterQuery = new AtomicReference<>();
+    public final AtomicReference<String> filterQuery = new AtomicReference<>();
 
     @Autowired
     public TelegramBot(UserService userService, WorkoutService workoutService) {
@@ -88,6 +89,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 });
             }
         } else {
+
             receiveQueue.add(update);
         }
 

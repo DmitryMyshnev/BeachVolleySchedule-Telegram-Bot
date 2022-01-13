@@ -63,11 +63,13 @@ public class SendMessageServiceImpl implements SendMessageService {
             sendMessage.setReplyMarkup(board);
         try {
             id = telegramBot.execute(sendMessage).getMessageId();
+            userService.save(MESSAGE_ID.getTableName(), new MessageId(id, chatId, timeWorkout, dayOfWeek), messageIdTable);
         } catch (TelegramApiException  e) {
             LOGGER.info(e.getMessage());
+            LOGGER.info(chatId + " " + timeWorkout);
             id = 0;
         }
-        userService.save(MESSAGE_ID.getTableName(), new MessageId(id, chatId, timeWorkout, dayOfWeek), messageIdTable);
+
         return id;
     }
 
@@ -85,6 +87,7 @@ public class SendMessageServiceImpl implements SendMessageService {
            telegramBot.execute(editMessage);
         } catch (TelegramApiException e) {
            LOGGER.info(e.getMessage());
+           LOGGER.info(chatId + " " + messageId);
         }
     }
 

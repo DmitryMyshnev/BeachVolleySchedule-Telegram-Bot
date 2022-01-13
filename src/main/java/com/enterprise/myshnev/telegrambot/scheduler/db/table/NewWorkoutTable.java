@@ -62,9 +62,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
 
     @Override
     public List<NewWorkout> findAll(String tableName) {
-        try {
-            String query = String.format(SELECT_ALL.getQuery(), tableName);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_ALL.getQuery(), tableName);
+        try( ResultSet res = ConnectionDb.executeQuery(query)) {
             List<NewWorkout> list = new ArrayList<>();
             while (Objects.requireNonNull(res).next()) {
                 NewWorkout workout = new NewWorkout();
@@ -87,9 +86,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
 
     @Override
     public Optional<NewWorkout> findById(String tableName,String id) {
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(), tableName, USER_ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_WHERE.getQuery(), tableName, USER_ID, id);
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
             if (Objects.requireNonNull(res).next()) {
                 NewWorkout workout = new NewWorkout();
                 workout.setUserId(res.getString(USER_ID));
@@ -144,9 +142,8 @@ public class NewWorkoutTable implements CrudDb<NewWorkout> {
     @Override
     public Integer count(String tableName) {
         String query = String.format(COUNT.getQuery()/* + " WHERE reserve = 0;"*/, tableName);
-        ResultSet res = ConnectionDb.executeQuery(query);
         int count;
-        try {
+        try( ResultSet res = ConnectionDb.executeQuery(query)) {
             count = Objects.requireNonNull(res).getInt("total");
             res.getStatement().close();
             res.close();

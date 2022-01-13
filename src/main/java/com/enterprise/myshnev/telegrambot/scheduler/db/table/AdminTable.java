@@ -3,6 +3,8 @@ package com.enterprise.myshnev.telegrambot.scheduler.db.table;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +20,7 @@ public class AdminTable implements CrudDb<TelegramUser> {
     private static final String CHAT_ID = "chat_id";
     private static final String FIRST_NAME = "first_name";
     private static final String LAST_NAME = "last_name";
-
+    public static Logger LOGGER = LogManager.getLogger(AdminTable.class);
     public AdminTable() {
 
     }
@@ -31,6 +33,8 @@ public class AdminTable implements CrudDb<TelegramUser> {
                 ConnectionDb.executeUpdate(query);
                 return OK.getStatus();
             } catch (SQLException e) {
+                LOGGER.info(e.getMessage());
+                LOGGER.info(e.getSQLState());
                return FAIL.getStatus();
             }
         }
@@ -39,9 +43,9 @@ public class AdminTable implements CrudDb<TelegramUser> {
 
     @Override
     public List<TelegramUser> findAll(String tableName) {
-        try {
-            String query = String.format(SELECT_ALL.getQuery(), TABLE);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_ALL.getQuery(), TABLE);
+        try(ResultSet res = ConnectionDb.executeQuery(query)) {
+
             List<TelegramUser> list = new ArrayList<>();
             while (res.next()) {
                 TelegramUser user = new TelegramUser();
@@ -54,16 +58,17 @@ public class AdminTable implements CrudDb<TelegramUser> {
             res.close();
             return list;
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return null;
         }
     }
 
     @Override
     public Optional<TelegramUser> findById(String tableName,String id) {
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(), tableName,CHAT_ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_WHERE.getQuery(), tableName,CHAT_ID, id);
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
+
             if (res.next()) {
                 TelegramUser user = new TelegramUser();
                 user.setChatId(res.getString(CHAT_ID));
@@ -75,7 +80,8 @@ public class AdminTable implements CrudDb<TelegramUser> {
             }
             return Optional.empty();
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return Optional.empty();
         }
     }
@@ -92,6 +98,8 @@ public class AdminTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -103,6 +111,8 @@ public class AdminTable implements CrudDb<TelegramUser> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -110,14 +120,14 @@ public class AdminTable implements CrudDb<TelegramUser> {
     @Override
     public Integer count(String tableName) {
         String query = String.format(COUNT.getQuery(), tableName);
-        ResultSet res = ConnectionDb.executeQuery(query);
-        try {
+        try (  ResultSet res = ConnectionDb.executeQuery(query)){
             while (res.next()){
                 return  res.getInt("total");
             }
         }
         catch (SQLException e){
-            e.printStackTrace();
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
         }
         return 0;
     }

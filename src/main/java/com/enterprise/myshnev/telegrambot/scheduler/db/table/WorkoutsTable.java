@@ -38,17 +38,16 @@ public class WorkoutsTable implements CrudDb<Workouts> {
             try {
                 ConnectionDb.executeUpdate(query);
             } catch (SQLException e) {
-              LOGGER.error(e.getMessage());
-              LOGGER.error(e.getSQLState());
+                LOGGER.info(e.getMessage());
+                LOGGER.info(e.getSQLState());
             }
             return OK.getStatus();
     }
 
     @Override
     public Optional<Workouts> findById(String tableName,String id) {
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(), tableName, ID, id);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_WHERE.getQuery(), tableName, ID, id);
+        try (ResultSet res = ConnectionDb.executeQuery(query)){
             if (res.next()) {
                 Workouts workout = new Workouts();
                 workout.setCoachId(res.getString(COACH_ID));
@@ -62,8 +61,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
             }
             return Optional.empty();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return Optional.empty();
         }
     }
@@ -71,9 +70,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
     @Override
     public List<Workouts> findBy(String tableName,String column,Object arg) {
         List<Workouts> list = new ArrayList<>();
-        try {
-            String query = String.format(SELECT_WHERE.getQuery(),tableName,column,arg);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_WHERE.getQuery(),tableName,column,arg);
+        try ( ResultSet res = ConnectionDb.executeQuery(query)){
             while (res.next()) {
                 Workouts workout = new Workouts();
                 workout.setId(res.getInt(ID));
@@ -88,8 +86,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
             res.close();
             return list;
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
         }
         return list;
     }
@@ -97,9 +95,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
     @Override
     public  List<Workouts> findAll(String tableName) {
         List<Workouts> list = new ArrayList<>();
-        try {
-            String query = String.format(SELECT_ALL.getQuery(), tableName);
-            ResultSet res = ConnectionDb.executeQuery(query);
+        String query = String.format(SELECT_ALL.getQuery(), tableName);
+        try (  ResultSet res = ConnectionDb.executeQuery(query)){
             while (res.next()) {
                 Workouts workout = new Workouts();
                 workout.setId(res.getInt(ID));
@@ -114,8 +111,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
             res.close();
             return list;
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
         }
         return list;
     }
@@ -132,8 +129,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return FAIL.getStatus();
         }
     }
@@ -145,8 +142,8 @@ public class WorkoutsTable implements CrudDb<Workouts> {
             ConnectionDb.executeUpdate(query);
             return OK.getStatus();
         } catch (SQLException e) {
-            LOGGER.error(e.getMessage());
-            LOGGER.error(e.getSQLState());
+            LOGGER.info(e.getMessage());
+            LOGGER.info(e.getSQLState());
             return FAIL.getStatus();
         }
     }

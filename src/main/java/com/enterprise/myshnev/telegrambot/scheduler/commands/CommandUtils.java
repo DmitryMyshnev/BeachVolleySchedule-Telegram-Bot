@@ -73,7 +73,7 @@ public class CommandUtils {
         if (update.hasCallbackQuery() && update.getCallbackQuery() != null) {
             return update.getCallbackQuery().getData();
         } else
-            return "";
+            return null;
     }
 
 }

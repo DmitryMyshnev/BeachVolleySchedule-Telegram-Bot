@@ -65,7 +65,7 @@ public class ConfirmCommand implements Command {
         if (answer.equals("yes")) {
             workoutService.dropTable(tableName, newWorkoutTable);
             workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                    .map(m -> (Workouts) m)
+                    .map(Workouts.class::cast)
                     .filter(f -> (f.getDayOfWeek().equals(dayOfWeek) && f.getTime().equals(timeOfWorkout))).findFirst().ifPresent(w -> {
                 workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "0");
             });
@@ -107,7 +107,9 @@ public class ConfirmCommand implements Command {
             date = formatOfDay.format(System.currentTimeMillis() + ONE_DAY);
         }
         message = "❌ Тренировка  " + date + " в " + timeOfWorkout + " отменена!";
-        userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast).forEach(user -> {
+        userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast)
+                .filter(f->(f.getDayOfWeek().equals(dayOfWeek) && f.getTime().equals(timeOfWorkout)))
+                .forEach(user -> {
             sendMessageService.deleteWorkoutMessage(user.getChatId(), user.getMessageId());
             sendMessageService.sendMessage(user.getChatId(), message, null);
         });

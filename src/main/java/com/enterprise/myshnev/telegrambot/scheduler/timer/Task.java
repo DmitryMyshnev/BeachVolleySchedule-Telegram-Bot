@@ -73,17 +73,24 @@ public class Task extends TimerTask {
     @Override
     public void run() {
         HOUR_OF_NOTIFICATION = SuperAdminUtils.TIME_OF_NOTIFICATION;
-        workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream().map(w -> (Workouts) w).forEach(w -> {
-            String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
-            int dayOfNotification = (WEEK.get(w.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(w.getDayOfWeek()) - 1;
-            // int dayOfNotification = WEEK.get(w.getDayOfWeek());
+        List<Workouts> workouts = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream().map(Workouts.class::cast).collect(Collectors.toList());
+        String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
+        if(formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
+            workouts.forEach(w -> {
+                        int dayOfNotification = (WEEK.get(w.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(w.getDayOfWeek()) - 1;
+                        // int dayOfNotification = WEEK.get(w.getDayOfWeek());
+                        if (Integer.parseInt(currentDayOfWeek) == dayOfNotification) {
+                            workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "1");
+                            createNotification(w.getDayOfWeek(), w.getTime(), w.getMaxCountUser());
+                        }
+                    });
+        }
+        workouts.forEach(w->{
             int dayOfWorkout = WEEK.get(w.getDayOfWeek());
-            if (Integer.parseInt(currentDayOfWeek) == dayOfNotification && formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
-                workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "1");
-                createNotification(w.getDayOfWeek(), w.getTime(), w.getMaxCountUser());
-            }
-            if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout && formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
-                stopTimerTack.breakWorkout(w.getDayOfWeek(), w.getTime(), w.getId());
+            if(w.isActive()) {
+                if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout && formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
+                    stopTimerTack.breakWorkout(w.getDayOfWeek(), w.getTime(), w.getId());
+                }
             }
         });
     }
@@ -93,7 +100,7 @@ public class Task extends TimerTask {
         String date = new SimpleDateFormat("E d MMM", locale).format(System.currentTimeMillis() + DAYS.toMillis(1));
         String callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + time + "/" + maxPlayer + "/join";
         String message = "Запись на тренировку в " + date + " в " + time + " открыта!\n " +
-                "Количество свободных мест: " + Symbols.getSymbol(maxPlayer) + "\n Список записавшихся:\n";
+                "Количество свободных мест: " + Symbols.getSymbol(maxPlayer);
         workoutService.addTable(dayOfWeek + time, newWorkoutsTable);
         userService.findAll(USERS.getTableName(), userTable).stream().map(TelegramUser.class::cast).collect(Collectors.toList()).forEach(user -> {
             if (user.isCoach()) {

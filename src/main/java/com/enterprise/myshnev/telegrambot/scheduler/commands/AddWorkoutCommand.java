@@ -38,7 +38,7 @@ public class AddWorkoutCommand implements Command {
     private boolean accept = false;
     private String superAdmin;
 
-    public AddWorkoutCommand(SendMessageService sendMessageService,UserService userService, WorkoutService workoutService) {
+    public AddWorkoutCommand(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.workoutService = workoutService;
         this.userService = userService;
@@ -51,10 +51,10 @@ public class AddWorkoutCommand implements Command {
     public void execute(Update update) {
         String chatId = getChatId(update);
         String command;
-        userService.findByChatId(COACH.getTableName(), chatId, coachTable).
-                map(m -> (TelegramUser) m)
-                .ifPresentOrElse(user -> accept = true,()->{
-                    userService.findByChatId(ADMIN.getTableName(), chatId, new AdminTable()).ifPresent(admin-> accept = true);
+        TelegramBot tb = TelegramBot.getInstance();
+        userService.findByChatId(COACH.getTableName(), chatId, coachTable)
+                .ifPresentOrElse(user -> accept = true, () -> {
+                    userService.findByChatId(ADMIN.getTableName(), chatId, new AdminTable()).ifPresent(admin -> accept = true);
                 });
         if (accept) {
             if (getCallbackQuery(update) != null) {
@@ -65,10 +65,6 @@ public class AddWorkoutCommand implements Command {
                             "через запятую.\nНапример: <strong>add/</strong><i>пн, 11:00, 4</i>\n" +
                             "(можно не указывать кол-во участников, по умолчанию - 8)";
                     sendMessageService.sendMessage(chatId, message, null);
-                }
-
-                if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
-                    sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
                 }
             } else {
                 String text = getText(update).toLowerCase();
@@ -90,8 +86,8 @@ public class AddWorkoutCommand implements Command {
                             String weekOfDay = Objects.requireNonNull(text).trim().split("/")[1].trim().split(",")[0].trim();
                             String time = Objects.requireNonNull(text).split("/")[1].trim().split(",")[1].trim();
                             String maxCount = null;
-                            if(text.split("/")[1].split(",").length == 3) {
-                                 maxCount = Objects.requireNonNull(text).split("/")[1].split(",")[2].trim();
+                            if (text.split("/")[1].split(",").length == 3) {
+                                maxCount = Objects.requireNonNull(text).split("/")[1].split(",")[2].trim();
                             }
                             AtomicBoolean isExist = new AtomicBoolean(false);
                             workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
@@ -99,7 +95,7 @@ public class AddWorkoutCommand implements Command {
                                     .forEach(w -> isExist.set(w.getDayOfWeek().equals(weekOfDay) && w.getTime().equals(time)));
                             if (!isExist.get()) {
                                 Workouts workouts = new Workouts(chatId, weekOfDay, time);
-                                if(maxCount != null){
+                                if (maxCount != null) {
                                     workouts.setMaxCountUser(Integer.parseInt(maxCount));
                                 }
                                 workoutService.save(WORKOUT.getTableName(), workouts, workoutsTable);
@@ -114,9 +110,13 @@ public class AddWorkoutCommand implements Command {
             }
 
         }
-
+        if (!tb.notifyMessageId.isEmpty()) {
+            sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
+        }
+        tb.filterQuery.set(null);
     }
-    private  String getSuperAdminFromFileConfig() {
+
+    private String getSuperAdminFromFileConfig() {
         Properties properties = new Properties();
         try {
             String path = System.getProperty("user.dir") + File.separator + "config.properties";

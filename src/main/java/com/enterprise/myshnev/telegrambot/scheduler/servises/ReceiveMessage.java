@@ -25,9 +25,7 @@ public class ReceiveMessage implements Runnable{
     public void run() {
        while (true){
            if(!bot.receiveQueue.isEmpty()) {
-
                executeCommand(Objects.requireNonNull(bot.receiveQueue.poll()));
-
            }
        }
     }
