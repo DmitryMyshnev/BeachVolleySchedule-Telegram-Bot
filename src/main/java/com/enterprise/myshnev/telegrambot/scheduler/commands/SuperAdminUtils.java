@@ -54,7 +54,6 @@ public class SuperAdminUtils {
         } catch (IOException e) {
             LOGGER.info(e.getMessage());
         }
-        String p = properties.getProperty(param);
         return properties.getProperty(param);
     }
 }

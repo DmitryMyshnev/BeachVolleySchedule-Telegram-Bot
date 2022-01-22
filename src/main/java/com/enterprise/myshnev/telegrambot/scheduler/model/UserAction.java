@@ -1,4 +1,4 @@
-package com.enterprise.myshnev.telegrambot.scheduler.repository.entity;
+package com.enterprise.myshnev.telegrambot.scheduler.model;
 
 public enum UserAction {
         ADD("add"),

@@ -89,10 +89,10 @@ public class TelegramBot extends TelegramLongPollingBot {
                 });
             }
         } else {
-
-            receiveQueue.add(update);
+            if (update.hasMessage()) {
+                receiveQueue.add(update);
+            }
         }
-
     }
 
     private CompletableFuture<Message> sendSystemMessage(String chatId) {

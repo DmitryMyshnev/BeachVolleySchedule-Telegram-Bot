@@ -1,8 +1,10 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.*;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.*;
+import com.enterprise.myshnev.telegrambot.scheduler.model.NewWorkout;
+import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Statistic;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
@@ -10,22 +12,16 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.STATISTIC;
-import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
-
-
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.*;
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.ENJOY;
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.repository.entity.UserAction.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.repository.entity.UserAction.ADD;
+import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
+import static com.enterprise.myshnev.telegrambot.scheduler.model.UserAction.*;
 
 public class AddUserToWorkout implements Command {
     private final SendMessageService sendMessageService;
@@ -35,50 +31,39 @@ public class AddUserToWorkout implements Command {
     private String timeOfWorkout;
     private String dayOfWeek;
     private int freePlaces;
-    private String message;
     private Integer maxSize;
     private final Statistic stat;
-    private final StatisticTable statisticTable;
-    private final NewWorkoutTable newWorkoutTable;
-    private final WorkoutsTable workoutTable;
-    private final UserTable userTable;
-    private final MessageIdTable messageIdTable;
+
     private InlineKeyboardMarkup board;
     private String callback;
-    private String workoutTableName;
     private final SimpleDateFormat Date;
     private final SimpleDateFormat formatOfDay;
     private final SimpleDateFormat formatOfWeek;
     private List<NewWorkout> workoutList;
     private String coachChatId;
+    private Workout workout;
 
     public AddUserToWorkout(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
         this.workoutService = workoutService;
-        userTable = new UserTable();
-        newWorkoutTable = new NewWorkoutTable();
-        workoutTable = new WorkoutsTable();
-        statisticTable = new StatisticTable();
-        messageIdTable = new MessageIdTable();
         Date = new SimpleDateFormat("dd.MM.yy H:mm:ss");
         stat = new Statistic();
         Locale locale = new Locale("ru");
         formatOfDay = new SimpleDateFormat("E d.MMM", locale);
         formatOfWeek = new SimpleDateFormat("E", locale);
-        workoutList = new ArrayList<>();
     }
 
     @Override
     public void execute(Update update) {
         dayOfWeek = Objects.requireNonNull(getCallbackQuery(update)).split("/")[1];
         timeOfWorkout = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
-        maxSize = Integer.parseInt(Objects.requireNonNull(getCallbackQuery(update)).split("/")[3]);
-        workoutTableName = dayOfWeek + timeOfWorkout;
-        userService.findAll(USERS.getTableName(), userTable).stream().map(TelegramUser.class::cast)
-                .filter(TelegramUser::isCoach)
-                .findFirst().ifPresent(coach -> coachChatId = coach.getChatId());
-        String command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[4];
+        String workoutTableName = dayOfWeek + timeOfWorkout;
+        workout = workoutService.findWorkoutByTime(dayOfWeek, timeOfWorkout);
+        maxSize = workout.getMaxCountUser();
+        userService.findUsersByRole("COACH").stream()
+                .findFirst().ifPresent(coach -> coachChatId = coach.getId());
+        String command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[3];
 
         if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
             Message msg = Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll());
@@ -90,27 +75,29 @@ public class AddUserToWorkout implements Command {
         if (!validWorkout(workoutTableName, getMessageId(update))) {
             return;
         }
-        long countNotReserve = workoutService.findAll(workoutTableName, newWorkoutTable).stream().map(NewWorkout.class::cast)
+        List<NewWorkout> joinedUsers = workoutService.findAllJoinedUsers(workout.getId());
+        long countNotReserve = joinedUsers.stream()
                 .filter(f -> (!f.isReserve())).count();
+
         freePlaces = maxSize - (int) countNotReserve;
-        workoutService.findByChatId(workoutTableName, getChatId(update), newWorkoutTable).map(NewWorkout.class::cast).ifPresentOrElse(
+        workoutService.findJoinedUser(getChatId(update), workout.getId()).ifPresentOrElse(
                 people -> {
                     if (command.equals("cancel")) {
-                        workoutService.delete(workoutTableName, people.getUserId(), newWorkoutTable);
+                        workoutService.delete(people);
                         addStatistic(update, REMOVE.getUserAction());
                         if (!people.isReserve() && freePlaces >= 0) {
                             freePlaces++;
-                            workoutService.findAll(workoutTableName, newWorkoutTable).stream().map(w -> (NewWorkout) w)
-                                    .filter(NewWorkout::isReserve)
-                                    .findFirst()
-                                    .ifPresent(p -> {
-                                        workoutService.update(newWorkoutTable, workoutTableName, p.getUserId(), "reserve", "0");
+                            workoutService.findAllJoinedUsers(workout.getId()).stream()
+                                    .filter(NewWorkout::isReserve).findFirst()
+                                    .ifPresent(user -> {
+                                        user.setReserve(false);
+                                        workoutService.updateNewWorkout(user);
                                         freePlaces--;
                                         String notification = "\uD83E\uDD73  Место освободилось! Ждем на тренировке в " + dayOfWeek + " в " + timeOfWorkout;
-                                        sendMessageService.sendMessage(p.getUserId(), notification, null);
+                                        sendMessageService.sendMessage(user.getChatId(), notification, null);
                                     });
                         }
-                        callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/" + maxSize + "/join";
+                        callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/join";
                         String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
                         board = builder().add(text, callback).create();
 
@@ -119,27 +106,26 @@ public class AddUserToWorkout implements Command {
                 () -> {
                     boolean isReserve;
                     if (command.equals("join")) {
-                        isReserve = workoutService.findAll(workoutTableName, newWorkoutTable).stream()
-                                .map(NewWorkout.class::cast).filter(f -> (!f.isReserve())).count() >= maxSize;
-                        workoutService.save(workoutTableName, createEntity(update, isReserve), newWorkoutTable);
+                        isReserve = joinedUsers.stream()
+                                .filter(f -> (!f.isReserve())).count() >= maxSize;
+                        userService.findSentMessage(getChatId(update), workout.getId())
+                                .ifPresent(sentMessages -> workoutService.saveNewWorkout(createEntity(update, isReserve, sentMessages, workout)));
                         if (!isReserve) {
                             addStatistic(update, ADD.getUserAction());
                             freePlaces--;
                         } else {
                             addStatistic(update, ADD_TO_RESERVE.getUserAction());
                         }
-                        callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/" + maxSize + "/cancel";
+                        callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/cancel";
                         board = builder().add("Отмена", callback).create();
                     }
                 });
-        workoutList = workoutService.findAll(workoutTableName, newWorkoutTable).stream()
-                .map(NewWorkout.class::cast).collect(Collectors.toList());
+        workoutList = workoutService.findAllJoinedUsers(workout.getId());
 
-        message = createListUsers(workoutList, freePlaces, getChatId(update));
+        String message = createListUsers(workoutList, freePlaces, getChatId(update));
         sendMessageService.editMessage(getChatId(update), getMessageId(update), message, board);
 
-
-        editMessageForAllUsers(workoutList, getChatId(update));
+        editMessageForAllUsers(getChatId(update), workout.getId());
     }
 
     private String createListUsers(List<NewWorkout> users, int places, String chatId) {
@@ -154,7 +140,7 @@ public class AddUserToWorkout implements Command {
                 + "Количество свободных мест:   %s \nСписок записавшихся: \n");
         users.stream().filter(f -> (!f.isReserve()))
                 .forEach(u -> {
-                    if (u.getUserId().equals(chatId)) {
+                    if (u.getChatId().equals(chatId)) {
                         message.append(number.incrementAndGet()).append(". ").append("<i>Я</i>\n");
                     } else
                         message.append(number.incrementAndGet()).append(". ").append(u.getFirstName()).append(" ").append(u.getLastName()).append("\n");
@@ -164,7 +150,7 @@ public class AddUserToWorkout implements Command {
         if (!reserve.isEmpty()) {
             message.append("<strong>Резерв:</strong>\n");
             reserve.forEach(u -> {
-                if (u.getUserId().equals(chatId)) {
+                if (u.getChatId().equals(chatId)) {
                     message.append(number.incrementAndGet()).append(". ").append("<i>Я</i>\n");
                 } else
                     message.append(number.incrementAndGet()).append(". ").append(u.getFirstName()).append(" ").append(u.getLastName()).append("\n");
@@ -174,61 +160,79 @@ public class AddUserToWorkout implements Command {
         return String.format(message.toString(), Symbols.getSymbol(Math.max(places, 0)));
     }
 
-    private void editMessageForAllUsers(List<NewWorkout> users, String chatId) {
+    private void editMessageForAllUsers(String chatId, Long workoutId) {
         AtomicReference<InlineKeyboardMarkup> board = new AtomicReference<>();
-        AtomicReference<String> msg = new AtomicReference<>();
-        userService.findAll(MESSAGE_ID.getTableName(), messageIdTable).stream().map(MessageId.class::cast)
-                .filter(f -> (f.getTime().equals(timeOfWorkout) && f.getDayOfWeek().equals(dayOfWeek)))
-                .forEach(user -> {
-                    msg.set(createListUsers(users, freePlaces, user.getChatId()));
-
-                    if (user.getChatId().equals(coachChatId)) {
-                        board.set(builder().add("Отменить тренировку", "cancel_workout/" + user.getDayOfWeek() + "/" + user.getTime()).create());
-                        sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
+        userService.findMessageId(workoutId)
+                .forEach(sentMessages -> {
+                    if (sentMessages.getUser().getId().equals(coachChatId)) {
+                        board.set(builder().add("Отменить тренировку", "cancel_workout/" +
+                                sentMessages.getWorkout().getDayOfWeek() + "/"
+                                + sentMessages.getWorkout().getTime())
+                                .create());
+                        sendMessageService.editMessage(sentMessages.getUser().getId(),
+                                sentMessages.getMessageId(),
+                                createListUsers(workoutList, freePlaces, sentMessages.getUser().getId()),
+                                board.get());
                     } else {
-                        if (!user.getChatId().equals(chatId)) {
-                            workoutService.findByChatId(workoutTableName, user.getChatId(), newWorkoutTable).ifPresentOrElse(p -> {
-                                board.set(builder().add("Отмена", ENJOY.getCommandName() + "/" + user.getDayOfWeek() + "/" + user.getTime() + "/" + maxSize + "/cancel").create());
-                                sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
+                        if (sentMessages.getUser().isEqualsRole("USER") && !sentMessages.getUser().getId().equals(chatId)) {
+                            workoutService.findJoinedUser(sentMessages.getUser().getId(), workoutId).ifPresentOrElse(user -> {
+                                board.set(builder().add("Отмена", ENJOY.getCommandName() + "/" +
+                                        sentMessages.getWorkout().getDayOfWeek() + "/" +
+                                        sentMessages.getWorkout().getTime() +
+                                        "/cancel")
+                                        .create());
+                                sendMessageService.editMessage(sentMessages.getUser().getId(),
+                                        sentMessages.getMessageId(),
+                                        createListUsers(workoutList, freePlaces, sentMessages.getUser().getId()),
+                                        board.get());
                             }, () -> {
                                 String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
-                                board.set(builder().add(text, ENJOY.getCommandName() + "/" + user.getDayOfWeek() + "/" + user.getTime() + "/" + maxSize + "/join").create());
-                                sendMessageService.editMessage(user.getChatId(), user.getMessageId(), msg.get(), board.get());
+                                board.set(builder().add(text, ENJOY.getCommandName() + "/"
+                                        + sentMessages.getWorkout().getDayOfWeek() + "/" +
+                                        sentMessages.getWorkout().getTime() +
+                                        "/join")
+                                        .create());
+                                sendMessageService.editMessage(sentMessages.getUser().getId(),
+                                        sentMessages.getMessageId(),
+                                        createListUsers(workoutList, freePlaces, sentMessages.getUser().getId()),
+                                        board.get());
                             });
                         }
                     }
                 });
     }
 
-    private NewWorkout createEntity(Update update, boolean reserve) {
-        NewWorkout workout = new NewWorkout();
-        workout.setUserId(getChatId(update));
-        workout.setFirstName(getFirstName(update));
+    private NewWorkout createEntity(Update update, boolean reserve, SentMessages sentMessages, Workout workout) {
+        NewWorkout newWorkout = new NewWorkout();
+        newWorkout.setChatId(getChatId(update));
+        newWorkout.setFirstName(getFirstName(update));
         if (getLastName(update) != null) {
-            workout.setLastName(getLastName(update));
+            newWorkout.setLastName(getLastName(update));
         } else {
-            workout.setLastName("");
+            newWorkout.setLastName("");
         }
-        workout.setReserve(reserve);
-        return workout;
+        newWorkout.setReserve(reserve);
+        newWorkout.setSentMessages(sentMessages);
+        newWorkout.setWorkout(workout);
+        return newWorkout;
     }
 
     private void addStatistic(Update update, String action) {
-        stat.setUserId(getChatId(update));
+        stat.setChatId(getChatId(update));
         String lastName = getLastName(update) == null ? "" : getLastName(update);
         stat.setUserName(getFirstName(update) + " " + lastName);
         stat.setWorkout(dayOfWeek + " " + timeOfWorkout);
         stat.setAction(action);
         stat.setDate(Date.format(System.currentTimeMillis()));
-        userService.save(STATISTIC.getTableName(), stat, statisticTable);
+        userService.saveStatistic(stat);
     }
 
     private boolean validWorkout(String nameOfWorkout, Integer messageId) {
         AtomicBoolean isValid = new AtomicBoolean(false);
-        workoutService.findAll(WORKOUT.getTableName(), workoutTable).stream().map(m -> (Workouts) m)
+        workoutService.findAllWorkout()
                 .forEach(w -> {
                     if ((w.getDayOfWeek() + w.getTime()).equals(nameOfWorkout) && w.isActive()) {
-                        if (userService.findByChatId(MESSAGE_ID.getTableName(), messageId.toString(), messageIdTable).isPresent())
+                        if (userService.findByMessageId(messageId).isPresent())
                             isValid.set(true);
                     }
                 });

@@ -1,8 +1,9 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises.messages;
 
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.MessageIdTable;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.MessageId;
+import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
+import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,7 +17,6 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
 import java.io.File;
 
 
@@ -26,13 +26,11 @@ public class SendMessageServiceImpl implements SendMessageService {
     public static Logger LOGGER = LogManager.getLogger(SendMessageServiceImpl.class);
     private final TelegramBot telegramBot;
     private final UserService userService;
-    private final MessageIdTable messageIdTable;
 
     @Autowired
     public SendMessageServiceImpl(TelegramBot telegramBot, UserService userService) {
         this.telegramBot = telegramBot;
         this.userService = userService;
-        messageIdTable = new MessageIdTable();
     }
 
     @Override
@@ -53,24 +51,24 @@ public class SendMessageServiceImpl implements SendMessageService {
     }
 
     @Override
-    public Integer sendMessage(String chatId, String message,String timeWorkout,String dayOfWeek,InlineKeyboardMarkup board) {
+    public Integer sendMessage(TelegramUser user, String message, Workout workout, InlineKeyboardMarkup board) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText(message);
-        sendMessage.setChatId(chatId);
+        sendMessage.setChatId(user.getId());
         sendMessage.enableHtml(true);
-        Integer id;
+        Integer messageId;
         if (board != null)
             sendMessage.setReplyMarkup(board);
         try {
-            id = telegramBot.execute(sendMessage).getMessageId();
-            userService.save(MESSAGE_ID.getTableName(), new MessageId(id, chatId, timeWorkout, dayOfWeek), messageIdTable);
+            messageId = telegramBot.execute(sendMessage).getMessageId();
+            userService.saveMessage(new SentMessages(messageId, user, workout));
         } catch (TelegramApiException  e) {
             LOGGER.info(e.getMessage());
-            LOGGER.info(chatId + " " + timeWorkout);
-            id = 0;
+            LOGGER.info(user + " " + workout.getTime());
+            messageId = 0;
         }
 
-        return id;
+        return messageId;
     }
 
     @Override
@@ -92,18 +90,20 @@ public class SendMessageServiceImpl implements SendMessageService {
     }
 
     @Override
-    public boolean deleteWorkoutMessage(String chatId, Integer messageId) {
+    public boolean deleteWorkoutMessage(String chatId, SentMessages sentMessages) {
         Boolean isDelete;
         DeleteMessage deleteMessage = new DeleteMessage();
         deleteMessage.setChatId(chatId);
-        deleteMessage.setMessageId(messageId);
+        deleteMessage.setMessageId(sentMessages.getMessageId());
         try {
             isDelete = telegramBot.execute(deleteMessage);
         } catch (TelegramApiException e) {
             LOGGER.info(e.getMessage());
+            LOGGER.info(chatId);
+            LOGGER.info(sentMessages.getMessageId());
             isDelete = false;
         }
-        userService.delete(MESSAGE_ID.getTableName(), messageId.toString(), messageIdTable);
+        userService.deleteSentMessage(sentMessages);
         return isDelete;
     }
 

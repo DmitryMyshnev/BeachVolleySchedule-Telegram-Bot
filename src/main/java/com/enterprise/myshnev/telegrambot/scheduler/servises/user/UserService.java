@@ -1,23 +1,23 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises.user;
 
-import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface UserService {
-    String save(String tableName,Object telegramUser, CrudDb table);
+public interface UserService extends SentMessageService,StatisticService,RoleService {
 
-    Optional<Object> findByChatId(String tableName,String chatId,CrudDb table);
+    void saveUser(TelegramUser user);
 
-    List<Object> findAll(String tableName,CrudDb table);
+    List<TelegramUser> findAll();
 
-    List<Object> findBy(String tableName,String column,Object arg,CrudDb table);
+    Optional<TelegramUser> findByChatId(String chatId);
 
-    String update(CrudDb table,String tableName,String chatId, String arg,String value);
 
-    String delete(String taleName,String chatId,CrudDb table);
+    void updateUser(TelegramUser telegramUser);
 
-    Integer count(String tableName,CrudDb table);
+    List<TelegramUser> findUsersByRole(String role);
+
+
+    List<TelegramUser> findAllByActive(boolean active);
 }

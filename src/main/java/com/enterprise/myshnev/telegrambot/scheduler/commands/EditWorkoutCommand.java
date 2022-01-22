@@ -1,9 +1,8 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
 import com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -11,14 +10,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getCallbackQuery;
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getMessageId;
-
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
 
 public class EditWorkoutCommand implements Command {
@@ -26,12 +19,10 @@ public class EditWorkoutCommand implements Command {
     private final WorkoutService workoutService;
     private String message;
     private InlineKeyboardMarkup board;
-    private final WorkoutsTable workoutsTable;
 
     public EditWorkoutCommand(SendMessageService sendMessageService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.workoutService = workoutService;
-        workoutsTable = new WorkoutsTable();
     }
 
     @Override
@@ -48,13 +39,12 @@ public class EditWorkoutCommand implements Command {
 
         }
         if (command.equals("delete")) {
-            workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                    .map(w -> (Workouts) w)
+            workoutService.findAllWorkout().stream()
                     .filter(w -> (w.getDayOfWeek().equals(weekOfDay) && w.getTime().equals(time)))
                     .findFirst()
                     .ifPresent(p -> {
                         if (!p.isActive()){
-                            workoutService.delete(WORKOUT.getTableName(), p.getId().toString(), workoutsTable);
+                            workoutService.deleteWorkout(p);
                             message = createMessage();
                             getWorkouts();
                             sendMessageService.editMessage(chatId, messageId, message, board);
@@ -70,9 +60,7 @@ public class EditWorkoutCommand implements Command {
     }
 
     private String createMessage() {
-        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                .map(w -> (Workouts) w)
-                .collect(Collectors.toList());
+        List<Workout> workout = workoutService.findAllWorkout();
         AtomicInteger size = new AtomicInteger(0);
         StringBuilder mess = new StringBuilder();
         mess.append("<strong>Рассписание тренировок:</strong>\n");
@@ -97,9 +85,7 @@ public class EditWorkoutCommand implements Command {
 
     private void getWorkouts() {
         InlineKeyBoard button = new InlineKeyBoard();
-        List<Workouts> workout = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                .map(w -> (Workouts) w)
-                .collect(Collectors.toList());
+        List<Workout> workout = workoutService.findAllWorkout();
         WEEK.forEach(week -> workout.stream().filter(f->(f.getDayOfWeek().equals(week))).forEach(w->{
         String text = WEEK_FULL_NAME.get(w.getDayOfWeek()) + " " + w.getTime();
         board = button.addButton(text, "editWorkout/" + w.getDayOfWeek() + "/" + w.getTime());
