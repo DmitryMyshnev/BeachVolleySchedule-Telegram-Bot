@@ -14,7 +14,7 @@ public class GetDbCommand implements Command {
 
     public GetDbCommand(SendMessageService sendMessageService) {
         this.sendMessageService = sendMessageService;
-        superAdminId = SuperAdminUtils.getIdSuperAdminFromFileConfig();
+        superAdminId = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
     }
 
     @Override

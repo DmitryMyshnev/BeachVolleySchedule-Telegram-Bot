@@ -27,13 +27,13 @@ public class HelpCommand implements Command {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
 
-        SUPER_ADMIN = SuperAdminUtils.getIdSuperAdminFromFileConfig();
+        SUPER_ADMIN = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
     }
 
     @Override
     public void execute(Update update) {
 
-        String time = getTimeNotificationFromFileConfig();
+        String time = SuperAdminUtils.getInstance().getTimeNotificationFromFileConfig();
         message = "ℹ️\n" +
                 "Запись на тренировку открывается за день до тренировки в " + time +
                 " и закрывается  за час до начала.\n" +
@@ -58,17 +58,5 @@ public class HelpCommand implements Command {
                 });
     }
 
-    private String getTimeNotificationFromFileConfig() {
-        Properties properties = new Properties();
-        try {
-            String path = System.getProperty("user.dir") + File.separator + "config.properties";
-            File file = ResourceUtils.getFile(path);
-            InputStream in = new FileInputStream(file);
-            properties.load(in);
-            in.close();
-        } catch (IOException e) {
-            LOGGER.info(e.getMessage());
-        }
-        return properties.getProperty("timeOfNotification");
-    }
+
 }

@@ -26,7 +26,7 @@ public class ScheduleCommand implements Command {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
         this.workoutService = workoutService;
-        SUPER_ADMIN = SuperAdminUtils.getIdSuperAdminFromFileConfig();
+        SUPER_ADMIN = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
     }
 
     @Override

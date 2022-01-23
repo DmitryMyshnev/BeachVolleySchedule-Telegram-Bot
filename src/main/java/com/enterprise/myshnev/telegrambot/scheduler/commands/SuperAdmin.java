@@ -1,10 +1,14 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.util.ResourceUtils;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -23,20 +27,18 @@ import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoa
 
 public class SuperAdmin implements Command {
     private final SendMessageService sendMessageService;
-    private final WorkoutService workoutService;
     private final UserService userService;
 
     private String firstNameCoach;
     private String lastNameCoach;
     private String chatIdCoach;
     private final String idSuperAdmin;
+    private static Logger LOGGER = LogManager.getLogger(SuperAdmin.class);
 
     public SuperAdmin(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
-        this.workoutService = workoutService;
         this.userService = userService;
-
-        idSuperAdmin = getIdSuperAdminFromFileConfig();
+        idSuperAdmin = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
     }
 
     @Override
@@ -46,19 +48,19 @@ public class SuperAdmin implements Command {
 
         if (command.equals(ADD_COACH.getCommandName()) &&
                 !getChatId(update).equals(idSuperAdmin) &&
-                listOfAdmin.stream().noneMatch(admin->(admin.getId().equals(getChatId(update))))) {
+                listOfAdmin.stream().noneMatch(admin -> (admin.getId().equals(getChatId(update))))) {
             firstNameCoach = getFirstName(update);
             lastNameCoach = getLastName(update);
             chatIdCoach = getChatId(update);
-            userService.findByChatId(chatIdCoach).ifPresent(p->{
-                if(p.getRole().getName().equals("COACH")){
-                    sendMessageService.deleteMessage(chatIdCoach,getMessageId(update));
-                }else {
+            userService.findByChatId(chatIdCoach).ifPresent(p -> {
+                if (p.isEqualsRole("COACH")) {
+                    sendMessageService.deleteMessage(chatIdCoach, getMessageId(update));
+                } else {
                     sendMessageService.sendMessage(getChatId(update), "Ожидайте подтверждения...", null);
                     String message = "Подтвердите тренера <i>" + firstNameCoach + " " + lastNameCoach + "</i>";
                     InlineKeyboardMarkup board = builder().add("Подтвердить", "confirm_coach/ok/" + firstNameCoach + "/" + lastNameCoach)
                             .add("Отменить", "confirm_coach/no").create();
-                    listOfAdmin.forEach(admin-> sendMessageService.sendMessage(admin.getId(), message, board));
+                    listOfAdmin.forEach(admin -> sendMessageService.sendMessage(admin.getId(), message, board));
                 }
             });
         }
@@ -68,36 +70,28 @@ public class SuperAdmin implements Command {
                 String answer = Objects.requireNonNull(getCallbackQuery(update)).split("/")[1];
                 if (answer.equals("ok")) {
                     userService.findByChatId(chatIdCoach).stream().findFirst()
-                           .ifPresent(coach -> {
-                               coach.setId(coach.getId());
-                               coach.setFirstName(firstNameCoach);
-                               coach.setLastName(lastNameCoach);
-                               coach.setRole( userService.findRoleByName("COACH"));
-                        userService.saveUser(coach);
-                        listOfAdmin.forEach(admin-> sendMessageService.editMessage(admin.getId(),getMessageId(update),"Successful!",null));
-                        sendMessageService.sendMessage(coach.getId(), "Вы добавлены тренером!", null);
-                    });
-                }else {
-                    if(answer.equals("no")){
-                        listOfAdmin.forEach(admin->sendMessageService.deleteMessage(admin.getId(),getMessageId(update)));
-                        sendMessageService.sendMessage(chatIdCoach,"Отклонено!",null);
+                            .ifPresent(coach -> {
+                                coach.setId(coach.getId());
+                                coach.setFirstName(firstNameCoach);
+                                coach.setLastName(lastNameCoach);
+                                coach.setRole(userService.findRoleByName("COACH"));
+                                userService.saveUser(coach);
+                                listOfAdmin.forEach(admin -> sendMessageService.editMessage(admin.getId(), getMessageId(update), "Successful!", null));
+                                sendMessageService.sendMessage(coach.getId(), "Вы добавлены тренером!", null);
+                            });
+                } else {
+                    if (answer.equals("no")) {
+                        listOfAdmin.forEach(admin -> sendMessageService.deleteMessage(admin.getId(), getMessageId(update)));
+                        sendMessageService.sendMessage(chatIdCoach, "Отклонено!", null);
                     }
                 }
+            }
+            if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
+                Message msg = Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll());
+                sendMessageService.deleteMessage(getChatId(update), msg.getMessageId());
             }
         }
     }
 
-    private String getIdSuperAdminFromFileConfig() {
-        Properties properties = new Properties();
-        try {
-            String path = System.getProperty("user.dir") + File.separator + "config.properties";
-            File file = ResourceUtils.getFile(path);
-            InputStream in = new FileInputStream(file);
-            properties.load(in);
-            in.close();
-        } catch (IOException e) {
-            e.getMessage();
-        }
-        return properties.getProperty("superAdmin.userId");
-    }
+
 }

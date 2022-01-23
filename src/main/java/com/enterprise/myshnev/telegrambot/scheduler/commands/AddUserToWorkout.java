@@ -162,7 +162,7 @@ public class AddUserToWorkout implements Command {
 
     private void editMessageForAllUsers(String chatId, Long workoutId) {
         AtomicReference<InlineKeyboardMarkup> board = new AtomicReference<>();
-        userService.findMessageId(workoutId)
+        userService.findSentMessages(workoutId)
                 .forEach(sentMessages -> {
                     if (sentMessages.getUser().getId().equals(coachChatId)) {
                         board.set(builder().add("Отменить тренировку", "cancel_workout/" +

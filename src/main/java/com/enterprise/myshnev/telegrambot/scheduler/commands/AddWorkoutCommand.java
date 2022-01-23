@@ -6,6 +6,8 @@ import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.util.ResourceUtils;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -26,22 +28,24 @@ public class AddWorkoutCommand implements Command {
     private final SendMessageService sendMessageService;
     private final WorkoutService workoutService;
     private final UserService userService;
-    private String message;
-
     private boolean accept = false;
     private final String SUPER_ADMIN;
+    private final Integer DEFAULT_MAX_COUNTER;
+    public static Logger LOGGER = LogManager.getLogger(AddWorkoutCommand.class);
 
     public AddWorkoutCommand(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.workoutService = workoutService;
         this.userService = userService;
-        SUPER_ADMIN = getSuperAdminFromFileConfig();
+        SUPER_ADMIN = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
+        DEFAULT_MAX_COUNTER = SuperAdminUtils.getInstance().getDEFAULT_MAX_COUNTER();
     }
 
     @Override
     public void execute(Update update) {
         String chatId = getChatId(update);
         String command;
+        String message;
         TelegramBot tb = TelegramBot.getInstance();
         userService.findByChatId(chatId).stream().filter(f -> (f.isEqualsRole("COACH")))
                 .findFirst()
@@ -95,6 +99,8 @@ public class AddWorkoutCommand implements Command {
                                 Workout workout = new Workout(chatId, weekOfDay, time);
                                 if (maxCount != null) {
                                     workout.setMaxCountUser(Integer.parseInt(maxCount));
+                                } else {
+                                    workout.setMaxCountUser(DEFAULT_MAX_COUNTER);
                                 }
                                 workoutService.saveWorkout(workout);
                                 sendMessageService.sendMessage(chatId, "✅ Тренировка добавлена!", null);
@@ -113,17 +119,6 @@ public class AddWorkoutCommand implements Command {
         tb.filterQuery.set(null);
     }
 
-    private String getSuperAdminFromFileConfig() {
-        Properties properties = new Properties();
-        try {
-            String path = System.getProperty("user.dir") + File.separator + "config.properties";
-            File file = ResourceUtils.getFile(path);
-            InputStream in = new FileInputStream(file);
-            properties.load(in);
-            in.close();
-        } catch (IOException e) {
-            e.getMessage();
-        }
-        return properties.getProperty("superAdmin.userId");
-    }
+
+
 }

@@ -9,22 +9,28 @@ import com.enterprise.myshnev.telegrambot.scheduler.repository.user.SentMessages
 import com.enterprise.myshnev.telegrambot.scheduler.repository.user.StatisticRepository;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UserServiceImpl implements UserService{
-    @Autowired
-    private  UserRepository userRepository;
-    @Autowired
-    private  SentMessagesRepository sentMessagesRepository;
-    @Autowired
-    private  StatisticRepository statisticRepository;
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+    private final SentMessagesRepository sentMessagesRepository;
+    private final StatisticRepository statisticRepository;
+    private final RoleRepository roleRepository;
 
     @Autowired
-    private RoleRepository roleRepository;
+    public UserServiceImpl(UserRepository userRepository, SentMessagesRepository sentMessagesRepository, StatisticRepository statisticRepository, RoleRepository roleRepository) {
+        this.userRepository = userRepository;
+        this.sentMessagesRepository = sentMessagesRepository;
+        this.statisticRepository = statisticRepository;
+        this.roleRepository = roleRepository;
+    }
 
     @Override
     public void saveUser(TelegramUser user) {
@@ -47,11 +53,12 @@ public class UserServiceImpl implements UserService{
         statisticRepository.save(stat);
     }
 
+    @CacheEvict(cacheNames = "sent_messages",allEntries = true)
     @Override
     public void saveMessage(SentMessages sentMessages) {
         sentMessagesRepository.save(sentMessages);
     }
-
+    @CacheEvict(cacheNames = "sent_messages",allEntries = true)
     @Override
     public void deleteSentMessage(SentMessages sentMessages) {
         sentMessagesRepository.delete(sentMessages);
@@ -90,18 +97,19 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public Optional<SentMessages> findByUserIdAndWorkoutId(String chatId,Long workoutId) {
-        return sentMessagesRepository.findByUserIdAndWorkoutId(chatId,workoutId);
+    public Optional<SentMessages> findByUserIdAndWorkoutId(String chatId, Long workoutId) {
+        return sentMessagesRepository.findByUserIdAndWorkoutId(chatId, workoutId);
     }
 
+    @Cacheable("sent_messages")
     @Override
-    public List<SentMessages> findMessageId(Long workoutId) {
+    public List<SentMessages> findSentMessages(Long workoutId) {
         return sentMessagesRepository.findByWorkoutId(workoutId);
     }
 
     @Override
     public Optional<SentMessages> findSentMessage(String chatId, Long workoutId) {
-        return sentMessagesRepository.findSentMessage(chatId,workoutId);
+        return sentMessagesRepository.findSentMessage(chatId, workoutId);
     }
 
     @Override

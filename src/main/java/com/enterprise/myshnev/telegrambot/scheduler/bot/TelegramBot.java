@@ -1,19 +1,16 @@
 package com.enterprise.myshnev.telegrambot.scheduler.bot;
 
 import com.enterprise.myshnev.telegrambot.scheduler.commands.CommandContainer;
+import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdmin;
+import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
 import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.ReceiveMessage;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageServiceImpl;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
 import org.apache.logging.log4j.LogManager;
-
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -21,11 +18,14 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.*;
+import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getCallbackQuery;
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getChatId;
 
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
@@ -41,8 +41,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     public TelegramBot(UserService userService, WorkoutService workoutService) {
-        BOT_USER_NAME = getBotConfigFromFile("botUserName".trim());
-        TOKEN = getBotConfigFromFile("botToken".trim());
+
+        BOT_USER_NAME = SuperAdminUtils.getInstance().getBotConfigFromFile("botUserName".trim());
+        TOKEN =  SuperAdminUtils.getInstance().getBotConfigFromFile("botToken".trim());
 
         new ConnectionDb();
         CommandContainer commandContainer = new CommandContainer(new SendMessageServiceImpl(this, userService), userService, workoutService);

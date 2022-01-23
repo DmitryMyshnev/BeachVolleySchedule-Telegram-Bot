@@ -17,7 +17,7 @@ public interface SentMessageService {
 
     List<SentMessages> findByWorkoutId(Long workoutId);
 
-    List<SentMessages> findMessageId(Long workoutId);
+    List<SentMessages> findSentMessages(Long workoutId);
 
     Optional<SentMessages> findSentMessage(String chatId, Long workoutId);
 }
