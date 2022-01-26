@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises.messages;
 
+import com.enterprise.myshnev.telegrambot.scheduler.exception.ForbiddenSendMessageException;
 import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
 import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;

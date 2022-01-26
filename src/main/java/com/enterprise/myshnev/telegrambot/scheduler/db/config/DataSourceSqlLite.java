@@ -42,9 +42,9 @@ public class DataSourceSqlLite {
         if (env.getProperty("hibernate.dialect") != null) {
             hibernateProperties.setProperty("hibernate.dialect", env.getProperty("hibernate.dialect"));
         }
-        if (env.getProperty("hibernate.show_sql") != null) {
+      /*  if (env.getProperty("hibernate.show_sql") != null) {
             hibernateProperties.setProperty("hibernate.show_sql", env.getProperty("hibernate.show_sql"));
-        }
+        }*/
         return hibernateProperties;
     }
 }

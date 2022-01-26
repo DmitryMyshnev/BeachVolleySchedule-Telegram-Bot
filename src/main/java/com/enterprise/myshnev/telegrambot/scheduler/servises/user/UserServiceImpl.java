@@ -58,6 +58,7 @@ public class UserServiceImpl implements UserService {
     public void saveMessage(SentMessages sentMessages) {
         sentMessagesRepository.save(sentMessages);
     }
+
     @CacheEvict(cacheNames = "sent_messages",allEntries = true)
     @Override
     public void deleteSentMessage(SentMessages sentMessages) {

@@ -136,7 +136,7 @@ public class AddUserToWorkout implements Command {
         } else {
             date = formatOfDay.format(System.currentTimeMillis() + ONE_DAY);
         }
-        StringBuilder message = new StringBuilder("Запись на тренировку в " + date + " в " + timeOfWorkout + " открыта!\n "
+        StringBuilder message = new StringBuilder("Запись на тренировку в " + date + " в <strong>" + timeOfWorkout + "</strong> открыта!\n "
                 + "Количество свободных мест:   %s \nСписок записавшихся: \n");
         users.stream().filter(f -> (!f.isReserve()))
                 .forEach(u -> {

@@ -1,9 +1,7 @@
 package com.enterprise.myshnev.telegrambot.scheduler.bot;
 
 import com.enterprise.myshnev.telegrambot.scheduler.commands.CommandContainer;
-import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdmin;
 import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
-import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.ReceiveMessage;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageServiceImpl;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
@@ -44,8 +42,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         BOT_USER_NAME = SuperAdminUtils.getInstance().getBotConfigFromFile("botUserName".trim());
         TOKEN =  SuperAdminUtils.getInstance().getBotConfigFromFile("botToken".trim());
-
-        new ConnectionDb();
         CommandContainer commandContainer = new CommandContainer(new SendMessageServiceImpl(this, userService), userService, workoutService);
         receiveMessage = new ReceiveMessage(this, commandContainer);
         Thread receiver = new Thread(receiveMessage);
