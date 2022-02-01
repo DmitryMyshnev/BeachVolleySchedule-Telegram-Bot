@@ -14,7 +14,7 @@ public class SetTimeOfNotifyCommand implements Command{
 
     public SetTimeOfNotifyCommand(SendMessageService sendMessageService){
         this.sendMessageService = sendMessageService;
-        this.superAdminId = SuperAdminUtils.getIdSuperAdminFromFileConfig();
+        this.superAdminId = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
     }
     @Override
     public void execute(Update update) {

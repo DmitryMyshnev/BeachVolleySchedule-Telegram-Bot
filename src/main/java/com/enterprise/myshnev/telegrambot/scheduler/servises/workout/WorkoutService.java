@@ -1,26 +1,22 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises.workout;
 
-import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface WorkoutService {
-    String addTable(String name, CrudDb newTable);
+public interface WorkoutService extends NewWorkoutService {
 
-    void save(String tableName,Object workout, CrudDb table);
+    List<Workout> findAllWorkout();
 
-    Optional<Object> findByChatId(String tableName,String chatId, CrudDb table);
+    void saveWorkout(Workout workout);
 
-    List<Object> findBy(String tableName,String column,Object arg, CrudDb table);
+    void updateWorkout(Workout workout);
 
-    List<Object> findAll(String tableName,CrudDb table);
+    void deleteWorkout(Workout workout);
 
-    String update(CrudDb table,String tableName,String chatId, String arg,String value);
+    Workout findWorkoutByTime(String deyOfWeek, String timeOfWorkout);
 
-    String delete(String tableName,String chatId,CrudDb table);
 
-    Integer count(String tableName,CrudDb table);
-
-    void dropTable(String tableName,CrudDb table);
+    Optional<Workout> findWorkout(Long id);
 }

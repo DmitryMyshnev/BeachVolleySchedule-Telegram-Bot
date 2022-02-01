@@ -2,11 +2,8 @@ package com.enterprise.myshnev.telegrambot.scheduler.timer;
 
 import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
 import com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.NewWorkoutTable;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
+import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
@@ -20,8 +17,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.ENJOY;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.USERS;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.WORKOUT;
 import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -51,11 +46,9 @@ public class Task extends TimerTask {
     private final SimpleDateFormat formatOfWeek;
     private final StopTimerTack stopTimerTack;
     private final SimpleDateFormat formatOfHour;
-    private final WorkoutsTable workoutsTable;
-    private final NewWorkoutTable newWorkoutsTable;
-    private final UserTable userTable;
-    private final WorkoutComparator workoutComparator;
+    private boolean editAllowed = false;
     public static Logger LOGGER = LogManager.getLogger(Task.class);
+    private final WorkoutComparator workoutComparator;
 
     public Task(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
@@ -64,68 +57,77 @@ public class Task extends TimerTask {
         this.stopTimerTack = new StopTimerTack(sendMessageService, userService, workoutService);
         formatOfWeek = new SimpleDateFormat("u");
         formatOfHour = new SimpleDateFormat("H:mm");
-        workoutsTable = new WorkoutsTable();
-        newWorkoutsTable = new NewWorkoutTable();
-        userTable = new UserTable();
         workoutComparator = new WorkoutComparator();
-        // HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
     }
 
     @Override
     public void run() {
         HOUR_OF_NOTIFICATION = SuperAdminUtils.TIME_OF_NOTIFICATION;
-        List<Workouts> workouts = workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                .map(Workouts.class::cast)
-                .sorted(workoutComparator)
-                .collect(Collectors.toList());
-
+        List<Workout> workouts = workoutService.findAllWorkout().stream().sorted(workoutComparator).collect(Collectors.toList());
         String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
-        if(formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
-            workouts.forEach(w -> {
-                        int dayOfNotification = (WEEK.get(w.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(w.getDayOfWeek()) - 1;
-                       //  int dayOfNotification = WEEK.get(w.getDayOfWeek());
-                        if (Integer.parseInt(currentDayOfWeek) == dayOfNotification) {
-                            workoutService.update(workoutsTable, WORKOUT.getTableName(), w.getId().toString(), "active", "1");
-                            createNotification(w.getDayOfWeek(), w.getTime(), w.getMaxCountUser());
-                        }
+        if (formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
+            workouts.forEach(workout -> {
+                int dayOfNotification = (WEEK.get(workout.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(workout.getDayOfWeek()) - 1;
+                // int dayOfNotification = WEEK.get(workout.getDayOfWeek());
+                if (Integer.parseInt(currentDayOfWeek) == dayOfNotification) {
+                    workout.setActive(true);
+                    workoutService.updateWorkout(workout);
+                    createNotification(workout);
+                    editAllowed = true;
+                }
             });
+            if (editAllowed) {
+                workouts.forEach(workout -> {
+                    String message = createMessage(workout);
+                    String callback = ENJOY.getCommandName() + "/" + workout.getDayOfWeek() + "/" + workout.getTime() + "/join";
+                    userService.findByWorkoutId(workout.getId()).forEach(sentMessages -> {
+                        if (sentMessages.getUser().isEqualsRole("USER")) {
+                            board = builder().add("Записаться", callback).create();
+                            sendMessageService.editMessage(sentMessages.getUser().getId(), sentMessages.getMessageId(), message, board);
+                        }
+                    });
+                });
+                editAllowed = false;
+            }
         }
-        String timeNotification =  formatOfHour.format(System.currentTimeMillis()+ HOURS.toMillis(1));
-        workouts.forEach(w->{
+
+        workouts.forEach(w -> {
             int dayOfWorkout = WEEK.get(w.getDayOfWeek());
-            if(w.isActive()) {
-                if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout && timeNotification.equals(w.getTime())) {
-                    stopTimerTack.breakWorkout(w.getDayOfWeek(), w.getTime(), w.getId());
+            if (w.isActive()) {
+                if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout && formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
+                    stopTimerTack.breakWorkout(w);
                 }
             }
         });
     }
 
-    private void createNotification(String dayOfWeek, String time, Integer maxPlayer) {
+    private void createNotification(Workout workout) {
+        String message = createMessage(workout);
+        List<TelegramUser> all = userService.findAllByActive(true);
+        all.forEach(user -> {
+            if (user.isEqualsRole("COACH")) {
+                board = builder().add("Отменить тренировку", "cancel_workout/" + workout.getDayOfWeek() + "/" + workout.getTime()).create();
+                sendMessageService.sendMessage(user, message, workout, board);
+            } else {
+                if (!user.isEqualsRole("ADMIN")) {
+                    //  board = builder().add("Записаться", callback).create();
+                    sendMessageService.sendMessage(user, message, workout, null);
+                }
+            }
+        });
+    }
+
+    private String createMessage(Workout workout) {
         Locale locale = new Locale("ru");
         String date = new SimpleDateFormat("E d MMM", locale).format(System.currentTimeMillis() + DAYS.toMillis(1));
-        String callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + time + "/" + maxPlayer + "/join";
-        String message = "Запись на тренировку в " + date + " в <strong>" + time + "</strong> открыта!\n " +
-                "Количество свободных мест: " + Symbols.getSymbol(maxPlayer);
-
-        workoutService.addTable(dayOfWeek + time, newWorkoutsTable);
-        userService.findAll(USERS.getTableName(), userTable).stream().map(TelegramUser.class::cast).collect(Collectors.toList()).forEach(user -> {
-            if (user.isCoach()) {
-                board = builder().add("Отменить тренировку", "cancel_workout/" + dayOfWeek + "/" + time).create();
-                sendMessageService.sendMessage(user.getChatId(), message, time, dayOfWeek, board);
-            } else {
-                if (user.isActive()) {
-                    board = builder().add("Записаться", callback).create();
-                    sendMessageService.sendMessage(user.getChatId(), message, time, dayOfWeek, board);
-                }
-            }
-        });
+        return "Запись на тренировку в " + date + " в <strong>" + workout.getTime() + "</strong> открыта!\n " +
+                "Количество свободных мест: " + Symbols.getSymbol(workout.getMaxCountUser());
     }
-
 }
-class WorkoutComparator implements Comparator<Workouts>{
+
+class WorkoutComparator implements Comparator<Workout> {
     @Override
-    public int compare(Workouts w1, Workouts w2) {
+    public int compare(Workout w1, Workout w2) {
         return w1.getTime().compareTo(w2.getTime());
     }
 }

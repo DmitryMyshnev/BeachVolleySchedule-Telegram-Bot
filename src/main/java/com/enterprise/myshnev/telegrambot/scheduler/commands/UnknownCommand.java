@@ -1,37 +1,34 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.UserTable;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
+import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.USERS;
 
 public class UnknownCommand implements Command {
     private final SendMessageService sendMessageService;
     private final UserService userService;
-    private final UserTable userTable;
+
 
     public UnknownCommand(SendMessageService sendMessageService, UserService userService) {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
-        userTable = new UserTable();
     }
 
     @Override
     public void execute(Update update) {
-        userService.findByChatId(USERS.getTableName(), getChatId(update), userTable).stream().
-                map(u -> (TelegramUser) u).findFirst().ifPresent(user -> {
-            if (!user.isCoach()) {
+        userService.findByChatId(getChatId(update)).stream()
+             .findFirst().ifPresent(user -> {
+            if (!user.getRole().getName().equals("COACH")) {
                 sendMessageService.deleteMessage(getChatId(update), getMessageId(update));
             } else {
                 if (getText(update).startsWith("#")) {
-                    userService.findAll(USERS.getTableName(), userTable).stream()
-                            .map(TelegramUser.class::cast).filter(TelegramUser::isActive)
+                    userService.findAll().stream()
+                            .filter(TelegramUser::isActive)
                             .forEach(u -> {
-                                if (!u.isCoach()) {
+                                if (!u.getRole().getName().equals("COACH")) {
                                     String message;
                                     if (user.getLastName() == null) {
                                         message = "<strong>" + user.getFirstName() +
@@ -40,11 +37,11 @@ public class UnknownCommand implements Command {
                                         message = "<strong>" + user.getFirstName() +
                                                 " " + ":</strong>\n" + getText(update).replace('#', ' ');
                                     }
-                                    sendMessageService.sendMessage(u.getChatId(), message, null);
+                                    sendMessageService.sendMessage(u.getId(), message, null);
                                 }
                             });
                 } else {
-                    sendMessageService.deleteWorkoutMessage(getChatId(update), getMessageId(update));
+                    sendMessageService.deleteMessage(getChatId(update), getMessageId(update));
                 }
             }
         });

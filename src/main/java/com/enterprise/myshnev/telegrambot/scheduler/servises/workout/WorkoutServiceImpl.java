@@ -1,62 +1,98 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises.workout;
 
-import com.enterprise.myshnev.telegrambot.scheduler.db.CrudDb;
+import com.enterprise.myshnev.telegrambot.scheduler.model.NewWorkout;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
+import com.enterprise.myshnev.telegrambot.scheduler.repository.workout.NewWorkoutRepository;
 import com.enterprise.myshnev.telegrambot.scheduler.repository.workout.WorkoutRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+
 @Service
-public class WorkoutServiceImpl implements WorkoutService{
-    private WorkoutRepository workoutRepository;
-@Autowired
-    public WorkoutServiceImpl(WorkoutRepository workoutRepository) {
+public class WorkoutServiceImpl implements WorkoutService {
+    private final WorkoutRepository workoutRepository;
+    private final NewWorkoutRepository newWorkoutRepository;
+
+    @Autowired
+    public WorkoutServiceImpl(WorkoutRepository workoutRepository, NewWorkoutRepository newWorkoutRepository) {
         this.workoutRepository = workoutRepository;
+        this.newWorkoutRepository = newWorkoutRepository;
+    }
+
+    public void save(Workout workout) {
+        workoutRepository.save(workout);
     }
 
     @Override
-    public String addTable(String name, CrudDb newTable) {
-        return workoutRepository.addTable(name,newTable);
+    @Cacheable("workouts")
+    public List<Workout> findAllWorkout() {
+        return workoutRepository.findAll();
     }
 
     @Override
-    public void save(String tableName,Object workout, CrudDb table) {
-       workoutRepository.insertInto(tableName,workout,table);
+    public void delete(NewWorkout user) {
+        newWorkoutRepository.delete(user);
     }
 
     @Override
-    public Optional<Object> findByChatId(String tableName,String chatId, CrudDb table) {
-        return workoutRepository.findById(tableName,chatId,table);
+    public List<NewWorkout> findAllJoinedUsers(Long id) {
+        return newWorkoutRepository.findByWorkoutId(id);
     }
 
     @Override
-    public List<Object> findBy(String tableName,String column,Object arg, CrudDb table) {
-        return workoutRepository.findBy(tableName,column,arg,table);
+    public void updateNewWorkout(NewWorkout newWorkout) {
+        newWorkoutRepository.save(newWorkout);
     }
 
     @Override
-    public Integer count(String tableName,CrudDb table) {
-        return workoutRepository.count(tableName,table);
+    public void saveNewWorkout(NewWorkout entity) {
+        newWorkoutRepository.save(entity);
     }
 
     @Override
-    public List<Object> findAll(String tableName,CrudDb table) {
-        return workoutRepository.findAll(tableName,table);
+    @CacheEvict(cacheNames = "workouts", allEntries = true)
+    public void saveWorkout(Workout workout) {
+        workoutRepository.save(workout);
     }
 
     @Override
-    public String update(CrudDb table,String tableName, String chatId, String arg, String value) {
-        return workoutRepository.update(table,tableName,chatId,arg,value);
+    public void deleteNewWorkout(NewWorkout newWorkout) {
+        newWorkoutRepository.delete(newWorkout);
+    }
+
+    @CacheEvict(cacheNames = "workouts", allEntries = true)
+    @Override
+    public void updateWorkout(Workout workout) {
+        workoutRepository.save(workout);
+    }
+
+    @CacheEvict(cacheNames = "workouts", allEntries = true)
+    @Override
+    public void deleteWorkout(Workout workout) {
+        workoutRepository.delete(workout);
     }
 
     @Override
-    public String delete(String tableName,String chatId, CrudDb table) {
-        return workoutRepository.delete(tableName,chatId,table);
+    public Workout findWorkoutByTime(String weekOfDay, String timeWorkout) {
+        return workoutRepository.findByDayOfWeekAndTime(weekOfDay, timeWorkout);
     }
 
     @Override
-    public void dropTable(String tableName, CrudDb table) {
-        workoutRepository.dropTable(tableName,table);
+    public Optional<NewWorkout> findJoinedUser(String chatId, Long workoutId) {
+        return newWorkoutRepository.findByChatIdAndWorkoutId(chatId, workoutId);
+    }
+
+    @Override
+    public Optional<Workout> findWorkout(Long id) {
+        return workoutRepository.findById(id);
+    }
+
+    @Override
+    public void deleteAllNewWorkout() {
+        newWorkoutRepository.deleteAll();
     }
 }

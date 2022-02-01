@@ -2,14 +2,12 @@ package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.AdminTable;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.CoachTable;
-import com.enterprise.myshnev.telegrambot.scheduler.db.table.WorkoutsTable;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.TelegramUser;
-import com.enterprise.myshnev.telegrambot.scheduler.repository.entity.Workouts;
+import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.util.ResourceUtils;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -19,44 +17,49 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
-import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
 
 
 public class AddWorkoutCommand implements Command {
     private final SendMessageService sendMessageService;
     private final WorkoutService workoutService;
     private final UserService userService;
-    private String message;
-    private final CoachTable coachTable;
-    private final WorkoutsTable workoutsTable;
     private boolean accept = false;
-    private String superAdmin;
+    private final String SUPER_ADMIN;
+    private final Integer DEFAULT_MAX_COUNTER;
+    public static Logger LOGGER = LogManager.getLogger(AddWorkoutCommand.class);
 
     public AddWorkoutCommand(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
         this.workoutService = workoutService;
         this.userService = userService;
-        coachTable = new CoachTable();
-        workoutsTable = new WorkoutsTable();
-        superAdmin = getSuperAdminFromFileConfig();
+        SUPER_ADMIN = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
+        DEFAULT_MAX_COUNTER = SuperAdminUtils.getInstance().getDEFAULT_MAX_COUNTER();
     }
 
     @Override
     public void execute(Update update) {
         String chatId = getChatId(update);
         String command;
+        String message;
         TelegramBot tb = TelegramBot.getInstance();
-        userService.findByChatId(COACH.getTableName(), chatId, coachTable)
-                .ifPresentOrElse(user -> accept = true, () -> {
-                    userService.findByChatId(ADMIN.getTableName(), chatId, new AdminTable()).ifPresent(admin -> accept = true);
-                });
+        userService.findByChatId(chatId).stream().filter(f -> (f.isEqualsRole("COACH")))
+                .findFirst()
+                .ifPresentOrElse(user -> accept = true,
+                        () -> {
+                            if (chatId.equals(SUPER_ADMIN)) {
+                                accept = true;
+                            } else {
+                                sendMessageService.deleteMessage(chatId, getMessageId(update));
+                                accept = false;
+                            }
+                        });
         if (accept) {
+            accept = false;
             if (getCallbackQuery(update) != null) {
                 command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[0];
 
@@ -90,15 +93,16 @@ public class AddWorkoutCommand implements Command {
                                 maxCount = Objects.requireNonNull(text).split("/")[1].split(",")[2].trim();
                             }
                             AtomicBoolean isExist = new AtomicBoolean(false);
-                            workoutService.findAll(WORKOUT.getTableName(), workoutsTable).stream()
-                                    .map(m -> (Workouts) m)
+                            workoutService.findAllWorkout()
                                     .forEach(w -> isExist.set(w.getDayOfWeek().equals(weekOfDay) && w.getTime().equals(time)));
                             if (!isExist.get()) {
-                                Workouts workouts = new Workouts(chatId, weekOfDay, time);
+                                Workout workout = new Workout(chatId, weekOfDay, time);
                                 if (maxCount != null) {
-                                    workouts.setMaxCountUser(Integer.parseInt(maxCount));
+                                    workout.setMaxCountUser(Integer.parseInt(maxCount));
+                                } else {
+                                    workout.setMaxCountUser(DEFAULT_MAX_COUNTER);
                                 }
-                                workoutService.save(WORKOUT.getTableName(), workouts, workoutsTable);
+                                workoutService.saveWorkout(workout);
                                 sendMessageService.sendMessage(chatId, "✅ Тренировка добавлена!", null);
                             } else {
                                 sendMessageService.sendMessage(chatId, "❗ Такая тренировка уже существует.", null);
@@ -108,7 +112,6 @@ public class AddWorkoutCommand implements Command {
                     }
                 }
             }
-
         }
         if (!tb.notifyMessageId.isEmpty()) {
             sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
@@ -116,17 +119,6 @@ public class AddWorkoutCommand implements Command {
         tb.filterQuery.set(null);
     }
 
-    private String getSuperAdminFromFileConfig() {
-        Properties properties = new Properties();
-        try {
-            String path = System.getProperty("user.dir") + File.separator + "config.properties";
-            File file = ResourceUtils.getFile(path);
-            InputStream in = new FileInputStream(file);
-            properties.load(in);
-            in.close();
-        } catch (IOException e) {
-            e.getMessage();
-        }
-        return properties.getProperty("superAdmin.userId");
-    }
+
+
 }
