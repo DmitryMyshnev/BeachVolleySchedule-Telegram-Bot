@@ -1,4 +1,4 @@
-# BeachVolleySchedule-Telegram-Bot
+# Beach Volley Schedule-Telegram-Bot
 Scheduler for Beach Voley trainig
 
 Telegram bot supports 3 user roles:
