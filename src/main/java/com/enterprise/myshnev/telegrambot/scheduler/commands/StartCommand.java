@@ -68,7 +68,7 @@ public class StartCommand implements Command {
 
     @Override
     public void execute(Update update) {
-        userService.findByChatId(COACH.getTableName(), getChatId(update), coachTable).map(TelegramUser.class::cast).ifPresentOrElse(coach -> {
+        userService.findByChatId(COACH.getTableName(), getChatId(update), coachTable).map(Coach.class::cast).ifPresentOrElse(coach -> {
             message = "Привет, " + coach.getFirstName() + "! ";
             sendMessageService.sendMessage(coach.getChatId(), message, null);
         }, () -> {

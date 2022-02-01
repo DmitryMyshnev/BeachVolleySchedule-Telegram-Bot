@@ -17,9 +17,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.db.table.Tables.*;
+
 import java.io.File;
-
-
 
 @Service
 public class SendMessageServiceImpl implements SendMessageService {
@@ -45,7 +44,7 @@ public class SendMessageServiceImpl implements SendMessageService {
             sendMessage.setReplyMarkup(keyBoard);
         }
         try {
-          telegramBot.execute(sendMessage).getMessageId();
+            telegramBot.execute(sendMessage).getMessageId();
 
         } catch (TelegramApiException e) {
             LOGGER.info(e.getMessage());
@@ -53,12 +52,18 @@ public class SendMessageServiceImpl implements SendMessageService {
     }
 
     @Override
-    public Integer sendMessage(String chatId, String message,String timeWorkout,String dayOfWeek,InlineKeyboardMarkup board) {
+    public Integer sendMessage(String chatId, String message, String timeWorkout, String dayOfWeek, InlineKeyboardMarkup board) {
+        Integer id = 0;
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         SendMessage sendMessage = new SendMessage();
         sendMessage.setText(message);
         sendMessage.setChatId(chatId);
         sendMessage.enableHtml(true);
-        Integer id;
+
         if (board != null)
             sendMessage.setReplyMarkup(board);
         try {
@@ -69,7 +74,6 @@ public class SendMessageServiceImpl implements SendMessageService {
             LOGGER.info(chatId + " " + timeWorkout);
             id = 0;
         }
-
         return id;
     }
 
@@ -84,10 +88,10 @@ public class SendMessageServiceImpl implements SendMessageService {
         if (keyBoard != null)
             editMessage.setReplyMarkup(keyBoard);
         try {
-           telegramBot.execute(editMessage);
+            telegramBot.execute(editMessage);
         } catch (TelegramApiException e) {
-           LOGGER.info(e.getMessage());
-           LOGGER.info(chatId + " " + messageId);
+            LOGGER.info(e.getMessage());
+            LOGGER.info(chatId + " " + messageId);
         }
     }
 
@@ -135,4 +139,5 @@ public class SendMessageServiceImpl implements SendMessageService {
             LOGGER.info(e.getMessage());
         }
     }
+
 }

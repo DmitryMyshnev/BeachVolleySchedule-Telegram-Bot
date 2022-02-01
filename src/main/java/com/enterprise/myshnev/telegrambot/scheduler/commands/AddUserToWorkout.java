@@ -138,40 +138,7 @@ public class AddUserToWorkout implements Command {
         message = createListUsers(workoutList, freePlaces, getChatId(update));
         sendMessageService.editMessage(getChatId(update), getMessageId(update), message, board);
 
-
         editMessageForAllUsers(workoutList, getChatId(update));
-    }
-
-    private String createListUsers(List<NewWorkout> users, int places, String chatId) {
-        AtomicInteger number = new AtomicInteger(0);
-        String date;
-        if (dayOfWeek.equals(formatOfWeek.format(System.currentTimeMillis()))) {
-            date = formatOfDay.format(System.currentTimeMillis());
-        } else {
-            date = formatOfDay.format(System.currentTimeMillis() + ONE_DAY);
-        }
-        StringBuilder message = new StringBuilder("Запись на тренировку в " + date + " в " + timeOfWorkout + " открыта!\n "
-                + "Количество свободных мест:   %s \nСписок записавшихся: \n");
-        users.stream().filter(f -> (!f.isReserve()))
-                .forEach(u -> {
-                    if (u.getUserId().equals(chatId)) {
-                        message.append(number.incrementAndGet()).append(". ").append("<i>Я</i>\n");
-                    } else
-                        message.append(number.incrementAndGet()).append(". ").append(u.getFirstName()).append(" ").append(u.getLastName()).append("\n");
-                });
-        number.set(0);
-        List<NewWorkout> reserve = users.stream().filter(NewWorkout::isReserve).toList();
-        if (!reserve.isEmpty()) {
-            message.append("<strong>Резерв:</strong>\n");
-            reserve.forEach(u -> {
-                if (u.getUserId().equals(chatId)) {
-                    message.append(number.incrementAndGet()).append(". ").append("<i>Я</i>\n");
-                } else
-                    message.append(number.incrementAndGet()).append(". ").append(u.getFirstName()).append(" ").append(u.getLastName()).append("\n");
-            });
-        }
-
-        return String.format(message.toString(), Symbols.getSymbol(Math.max(places, 0)));
     }
 
     private void editMessageForAllUsers(List<NewWorkout> users, String chatId) {
@@ -199,7 +166,37 @@ public class AddUserToWorkout implements Command {
                     }
                 });
     }
+    private String createListUsers(List<NewWorkout> users, int places, String chatId) {
+        AtomicInteger number = new AtomicInteger(0);
+        String date;
+        if (dayOfWeek.equals(formatOfWeek.format(System.currentTimeMillis()))) {
+            date = formatOfDay.format(System.currentTimeMillis());
+        } else {
+            date = formatOfDay.format(System.currentTimeMillis() + ONE_DAY);
+        }
+        StringBuilder message = new StringBuilder("Запись на тренировку в " + date + " в <strong>" + timeOfWorkout + "</strong> открыта!\n "
+                + "Количество свободных мест:   %s \nСписок записавшихся: \n");
+        users.stream().filter(f -> (!f.isReserve()))
+                .forEach(u -> {
+                    if (u.getUserId().equals(chatId)) {
+                        message.append(number.incrementAndGet()).append(". ").append("<i>Я</i>\n");
+                    } else
+                        message.append(number.incrementAndGet()).append(". ").append(u.getFirstName()).append(" ").append(u.getLastName()).append("\n");
+                });
+        number.set(0);
+        List<NewWorkout> reserve = users.stream().filter(NewWorkout::isReserve).toList();
+        if (!reserve.isEmpty()) {
+            message.append("<strong>Резерв:</strong>\n");
+            reserve.forEach(u -> {
+                if (u.getUserId().equals(chatId)) {
+                    message.append(number.incrementAndGet()).append(". ").append("<i>Я</i>\n");
+                } else
+                    message.append(number.incrementAndGet()).append(". ").append(u.getFirstName()).append(" ").append(u.getLastName()).append("\n");
+            });
+        }
 
+        return String.format(message.toString(), Symbols.getSymbol(Math.max(places, 0)));
+    }
     private NewWorkout createEntity(Update update, boolean reserve) {
         NewWorkout workout = new NewWorkout();
         workout.setUserId(getChatId(update));
