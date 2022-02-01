@@ -42,28 +42,30 @@ public class StartCommand implements Command {
 
     @Override
     public void execute(Update update) {
-        userService.findByChatId(getChatId(update)).ifPresentOrElse(entity -> {
-            switch (entity.getRole().getName()) {
+        userService.findByChatId(getChatId(update)).ifPresentOrElse(user -> {
+            switch (user.getRole().getName()) {
                 case "COACH" -> {
-                    message = "Привет, " + entity.getFirstName() + "! ";
-                    sendMessageService.sendMessage(entity.getId(), message, null);
+                    message = "Привет, " + user.getFirstName() + "! ";
+                    sendMessageService.sendMessage(user.getId(), message, null);
                 }
                 case "ADMIN" -> sendMessageService.deleteMessage(getChatId(update), getMessageId(update));
                 default -> {
-                    if (entity.isActive()) {
+                    if (user.isActive()) {
                         message = "Вы уже зарегистрированы";
+                        sendMessageService.sendMessage(user.getId(), message, null);
                     } else {
-                        entity.setActive(true);
-                        userService.updateUser(entity);
+                        user.setActive(true);
+                        userService.updateUser(user);
                         message = "Уведомления включены.";
+                        sendMessageService.sendMessage(user.getId(), message, null);
+                        findActiveWorkout(user);
                     }
-                    sendMessageService.sendMessage(entity.getId(), message, null);
                 }
             }
         }, () -> {
-            TelegramUser user = new TelegramUser(getChatId(update), getFirstName(update), getLastName(update), userService.findRoleByName("USER"));
+            TelegramUser newUser = new TelegramUser(getChatId(update), getFirstName(update), getLastName(update), userService.findRoleByName("USER"));
 
-            userService.saveUser(user);
+            userService.saveUser(newUser);
             List<TelegramUser> coach = userService.findUsersByRole("COACH");
             StringBuilder nameCoach = new StringBuilder();
             if (coach.size() > 0) {
@@ -76,7 +78,7 @@ public class StartCommand implements Command {
                     "/stop - отключить уведомления\n" +
                     "/start - включить уведомления\n";
             sendMessageService.sendMessage(getChatId(update), message, null);
-            findActiveWorkout(user);
+            findActiveWorkout(newUser);
         });
         message = "";
     }
@@ -85,18 +87,20 @@ public class StartCommand implements Command {
         workoutService.findAllWorkout().stream()
                 .filter(Workout::isActive)
                 .forEach(workouts -> {
-                    timeOfWorkout = workouts.getTime();
-                    dayOfWeek = workouts.getDayOfWeek();
+                    if (userService.findByUserIdAndWorkoutId(user.getId(), workouts.getId()).isEmpty()) {
+                        timeOfWorkout = workouts.getTime();
+                        dayOfWeek = workouts.getDayOfWeek();
                         callback = ENJOY.getCommandName() + "/" + workouts.getDayOfWeek() + "/" + timeOfWorkout + "/join";
                         List<NewWorkout> signedUpUsers = workoutService.findAllJoinedUsers(workouts.getId());
                         long freePlaces = workouts.getMaxCountUser() - signedUpUsers.stream().filter(r -> !r.isReserve()).count();
                         String mess = createListUsers(signedUpUsers, (int) freePlaces, user.getId());
                         String buttonText = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
                         board = builder().add(buttonText, callback).create();
-                        Integer id = sendMessageService.sendMessage(user, mess,workouts, board);
+                        Integer id = sendMessageService.sendMessage(user, mess, workouts, board);
                         if (id == 0) {
                             sendMessageService.sendMessage(user, mess, workouts, board);
                         }
+                    }
                 });
     }
 

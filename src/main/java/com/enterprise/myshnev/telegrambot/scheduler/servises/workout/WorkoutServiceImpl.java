@@ -91,4 +91,8 @@ public class WorkoutServiceImpl implements WorkoutService {
         return workoutRepository.findById(id);
     }
 
+    @Override
+    public void deleteAllNewWorkout() {
+        newWorkoutRepository.deleteAll();
+    }
 }

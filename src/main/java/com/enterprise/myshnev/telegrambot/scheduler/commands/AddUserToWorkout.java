@@ -32,7 +32,6 @@ public class AddUserToWorkout implements Command {
     private String dayOfWeek;
     private int freePlaces;
     private Integer maxSize;
-    private final Statistic stat;
 
     private InlineKeyboardMarkup board;
     private String callback;
@@ -48,7 +47,7 @@ public class AddUserToWorkout implements Command {
         this.userService = userService;
         this.workoutService = workoutService;
         Date = new SimpleDateFormat("dd.MM.yy H:mm:ss");
-        stat = new Statistic();
+
         Locale locale = new Locale("ru");
         formatOfDay = new SimpleDateFormat("E d.MMM", locale);
         formatOfWeek = new SimpleDateFormat("E", locale);
@@ -100,7 +99,6 @@ public class AddUserToWorkout implements Command {
                         callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/join";
                         String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
                         board = builder().add(text, callback).create();
-
                     }
                 },
                 () -> {
@@ -218,6 +216,7 @@ public class AddUserToWorkout implements Command {
     }
 
     private void addStatistic(Update update, String action) {
+        Statistic  stat = new Statistic();
         stat.setChatId(getChatId(update));
         String lastName = getLastName(update) == null ? "" : getLastName(update);
         stat.setUserName(getFirstName(update) + " " + lastName);

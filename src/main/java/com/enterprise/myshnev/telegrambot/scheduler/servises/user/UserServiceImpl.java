@@ -117,4 +117,9 @@ public class UserServiceImpl implements UserService {
     public List<TelegramUser> findAllByActive(boolean active) {
         return userRepository.findByActive(active);
     }
+
+    @Override
+    public List<SentMessages> findAllSentMessage() {
+        return sentMessagesRepository.findAll();
+    }
 }

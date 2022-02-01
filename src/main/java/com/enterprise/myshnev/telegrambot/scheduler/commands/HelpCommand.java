@@ -4,16 +4,9 @@ import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessag
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.util.ResourceUtils;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
-import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getChatId;
+import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.*;
 
 public class HelpCommand implements Command {
     private final SendMessageService sendMessageService;
@@ -26,7 +19,6 @@ public class HelpCommand implements Command {
     public HelpCommand(SendMessageService sendMessageService, UserService userService) {
         this.sendMessageService = sendMessageService;
         this.userService = userService;
-
         SUPER_ADMIN = SuperAdminUtils.getInstance().getIdSuperAdminFromFileConfig();
     }
 
@@ -42,19 +34,24 @@ public class HelpCommand implements Command {
                 "/start - включить уведомления\n";
 
         userService.findByChatId(getChatId(update))
-                .ifPresent(user -> {
+                .ifPresentOrElse(user -> {
+                    if(user.isEqualsRole("USER")){
+                        sendMessageService.sendMessage(getChatId(update), message, null);
+                    }
                     if (user.isEqualsRole("COACH")) {
                         message += " - вы можете отправлять сообщение всем участникам. Для этого перед сообщением поставьте символ #\n" +
                                 " - вы можете удалить тренировку принудительно. Все участники  получат уведомление об отмене\n";
+                        sendMessageService.sendMessage(getChatId(update), message, null);
                     }
+                }, () -> {
                     if (getChatId(update).equals(SUPER_ADMIN)) {
                         message += """
                                 /stat -  получить статистику
                                 /db -  получить файл базы данных
                                 time/ - узказать время оповещения
                                 """;
+                        sendMessageService.sendMessage(getChatId(update), message, null);
                     }
-                    sendMessageService.sendMessage(getChatId(update), message, null);
                 });
     }
 

@@ -46,7 +46,7 @@ public class Task extends TimerTask {
     private final SimpleDateFormat formatOfWeek;
     private final StopTimerTack stopTimerTack;
     private final SimpleDateFormat formatOfHour;
-
+    private boolean editAllowed = false;
     public static Logger LOGGER = LogManager.getLogger(Task.class);
     private final WorkoutComparator workoutComparator;
 
@@ -58,7 +58,6 @@ public class Task extends TimerTask {
         formatOfWeek = new SimpleDateFormat("u");
         formatOfHour = new SimpleDateFormat("H:mm");
         workoutComparator = new WorkoutComparator();
-        // HOUR_OF_NOTIFICATION = SuperAdminUtils.getTimeNotificationFromFileConfig();
     }
 
     @Override
@@ -69,26 +68,27 @@ public class Task extends TimerTask {
         if (formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
             workouts.forEach(workout -> {
                 int dayOfNotification = (WEEK.get(workout.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(workout.getDayOfWeek()) - 1;
-               // int dayOfNotification = WEEK.get(workout.getDayOfWeek());
+                // int dayOfNotification = WEEK.get(workout.getDayOfWeek());
                 if (Integer.parseInt(currentDayOfWeek) == dayOfNotification) {
                     workout.setActive(true);
                     workoutService.updateWorkout(workout);
                     createNotification(workout);
+                    editAllowed = true;
                 }
             });
-
-            workouts.forEach(workout -> {
-                String message = createMessage(workout);
-                String callback = ENJOY.getCommandName() + "/" + workout.getDayOfWeek() + "/" + workout.getTime() + "/join";
-                if (workout.isActive()) {
+            if (editAllowed) {
+                workouts.forEach(workout -> {
+                    String message = createMessage(workout);
+                    String callback = ENJOY.getCommandName() + "/" + workout.getDayOfWeek() + "/" + workout.getTime() + "/join";
                     userService.findByWorkoutId(workout.getId()).forEach(sentMessages -> {
                         if (sentMessages.getUser().isEqualsRole("USER")) {
                             board = builder().add("Записаться", callback).create();
                             sendMessageService.editMessage(sentMessages.getUser().getId(), sentMessages.getMessageId(), message, board);
                         }
                     });
-                }
-            });
+                });
+                editAllowed = false;
+            }
         }
 
         workouts.forEach(w -> {
@@ -101,7 +101,7 @@ public class Task extends TimerTask {
         });
     }
 
-    private void createNotification(Workout workout)  {
+    private void createNotification(Workout workout) {
         String message = createMessage(workout);
         List<TelegramUser> all = userService.findAllByActive(true);
         all.forEach(user -> {
