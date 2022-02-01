@@ -10,8 +10,8 @@ The User can:
 - receive a notification in case of training cancellation
 
 The Coach can:
-- create a workout
-- cancel workout
+- create/delete a new workout
+- cancel current workout
 - send a message to all users
 
 The Admin can:
