@@ -19,8 +19,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
 
-
-
 @Service
 public class SendMessageServiceImpl implements SendMessageService {
     public static Logger LOGGER = LogManager.getLogger(SendMessageServiceImpl.class);

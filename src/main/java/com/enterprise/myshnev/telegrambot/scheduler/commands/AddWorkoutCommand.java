@@ -116,7 +116,7 @@ public class AddWorkoutCommand implements Command {
         if (!tb.notifyMessageId.isEmpty()) {
             sendMessageService.deleteMessage(getChatId(update), Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll()).getMessageId());
         }
-        tb.filterQuery.set(null);
+       // tb.filterQuery.set(null);
     }
 
 

@@ -68,8 +68,8 @@ public class Task extends TimerTask {
         String currentDayOfWeek = formatOfWeek.format(System.currentTimeMillis());
         if (formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
             workouts.forEach(workout -> {
-                //int dayOfNotification = (WEEK.get(workout.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(workout.getDayOfWeek()) - 1;
-                 int dayOfNotification = WEEK.get(workout.getDayOfWeek());
+                int dayOfNotification = (WEEK.get(workout.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(workout.getDayOfWeek()) - 1;
+                 //int dayOfNotification = WEEK.get(workout.getDayOfWeek());
                 if (Integer.parseInt(currentDayOfWeek) == dayOfNotification) {
                     workout.setActive(true);
                     workoutService.updateWorkout(workout);
