@@ -20,4 +20,5 @@ public interface NewWorkoutService {
 
     void deleteNewWorkout(NewWorkout newWorkout);
 
+    void deleteAllNewWorkout();
 }

@@ -17,7 +17,8 @@ public enum CommandName {
     ADD("add"),
     CANCEL_WORKOUT("cancel_workout"),
     GET_DATA_BASE("/db"),
-    SET_TIME_NOTIFY("time");
+    SET_TIME_NOTIFY("time"),
+    CLEAR_MESSAGE("/clear");
     private final String commandName;
 
     CommandName(String commandName) {

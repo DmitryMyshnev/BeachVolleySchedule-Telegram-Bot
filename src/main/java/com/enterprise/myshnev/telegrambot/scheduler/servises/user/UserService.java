@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.servises.user;
 
+import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
 import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
 
 import java.util.List;
@@ -20,4 +21,6 @@ public interface UserService extends SentMessageService,StatisticService,RoleSer
 
 
     List<TelegramUser> findAllByActive(boolean active);
+
+    List<SentMessages> findAllSentMessage();
 }

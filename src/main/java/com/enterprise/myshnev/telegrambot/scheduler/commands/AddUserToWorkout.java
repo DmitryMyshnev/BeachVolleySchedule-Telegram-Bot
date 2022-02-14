@@ -1,10 +1,7 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import com.enterprise.myshnev.telegrambot.scheduler.model.NewWorkout;
-import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
-import com.enterprise.myshnev.telegrambot.scheduler.model.Statistic;
-import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
+import com.enterprise.myshnev.telegrambot.scheduler.model.*;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
@@ -34,7 +31,6 @@ public class AddUserToWorkout implements Command {
     private String dayOfWeek;
     private int freePlaces;
     private Integer maxSize;
-    private final Statistic stat;
 
     private InlineKeyboardMarkup board;
     private String callback;
@@ -51,7 +47,7 @@ public class AddUserToWorkout implements Command {
         this.userService = userService;
         this.workoutService = workoutService;
         Date = new SimpleDateFormat("dd.MM.yy H:mm:ss");
-        stat = new Statistic();
+
         Locale locale = new Locale("ru");
         formatOfDay = new SimpleDateFormat("E d.MMM", locale);
         formatOfWeek = new SimpleDateFormat("E", locale);
@@ -107,7 +103,6 @@ public class AddUserToWorkout implements Command {
                         callback = ENJOY.getCommandName() + "/" + dayOfWeek + "/" + timeOfWorkout + "/join";
                         String text = freePlaces <= 0 ? "Записаться в резерв" : "Записаться";
                         board = builder().add(text, callback).create();
-
                     }
                 },
                 () -> {
@@ -143,7 +138,7 @@ public class AddUserToWorkout implements Command {
         } else {
             date = formatOfDay.format(System.currentTimeMillis() + ONE_DAY);
         }
-        StringBuilder message = new StringBuilder("Запись на тренировку в " + date + " в " + timeOfWorkout + " открыта!\n "
+        StringBuilder message = new StringBuilder("Запись на тренировку в " + date + " в <strong>" + timeOfWorkout + "</strong> открыта!\n "
                 + "Количество свободных мест:   %s \nСписок записавшихся: \n");
         users.stream().filter(f -> (!f.isReserve()))
                 .forEach(u -> {
@@ -207,6 +202,7 @@ public class AddUserToWorkout implements Command {
                         }
                     }
                 });
+
     }
 
     private NewWorkout createEntity(Update update, boolean reserve, SentMessages sentMessages, Workout workout) {
@@ -225,6 +221,7 @@ public class AddUserToWorkout implements Command {
     }
 
     private void addStatistic(Update update, String action) {
+        Statistic  stat = new Statistic();
         stat.setChatId(getChatId(update));
         String lastName = getLastName(update) == null ? "" : getLastName(update);
         stat.setUserName(getFirstName(update) + " " + lastName);

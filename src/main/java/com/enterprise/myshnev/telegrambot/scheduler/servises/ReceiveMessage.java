@@ -14,7 +14,6 @@ public class ReceiveMessage implements Runnable{
     public static Logger LOGGER = LogManager.getLogger(ReceiveMessage.class);
     private final TelegramBot bot;
     private final CommandContainer commandContainer;
-    private String commandIdentifier;
 
     public ReceiveMessage(TelegramBot bot,CommandContainer commandContainer) {
      this.bot = bot;
@@ -31,6 +30,7 @@ public class ReceiveMessage implements Runnable{
     }
     private void executeCommand(Update update){
         String message;
+        String commandIdentifier = "";
         if (update.hasMessage() && update.getMessage().hasText()) {
             message = update.getMessage().getText().trim();
             if (message.startsWith("/")) {

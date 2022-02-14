@@ -58,6 +58,7 @@ public class UserServiceImpl implements UserService {
     public void saveMessage(SentMessages sentMessages) {
         sentMessagesRepository.save(sentMessages);
     }
+
     @CacheEvict(cacheNames = "sent_messages",allEntries = true)
     @Override
     public void deleteSentMessage(SentMessages sentMessages) {
@@ -115,5 +116,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<TelegramUser> findAllByActive(boolean active) {
         return userRepository.findByActive(active);
+    }
+
+    @Override
+    public List<SentMessages> findAllSentMessage() {
+        return sentMessagesRepository.findAll();
     }
 }

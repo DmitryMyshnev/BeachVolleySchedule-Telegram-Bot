@@ -5,6 +5,7 @@ import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
 import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
 import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
+import lombok.Synchronized;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ public class SendMessageServiceImpl implements SendMessageService {
     public static Logger LOGGER = LogManager.getLogger(SendMessageServiceImpl.class);
     private final TelegramBot telegramBot;
     private final UserService userService;
+    private final String ERROR_CODE_FORBIDDEN = "403";
 
     @Autowired
     public SendMessageServiceImpl(TelegramBot telegramBot, UserService userService) {
@@ -41,10 +43,17 @@ public class SendMessageServiceImpl implements SendMessageService {
             sendMessage.setReplyMarkup(keyBoard);
         }
         try {
-          telegramBot.execute(sendMessage).getMessageId();
+            telegramBot.execute(sendMessage);
 
         } catch (TelegramApiException e) {
+            if (e.getMessage().contains(ERROR_CODE_FORBIDDEN)) {
+                userService.findByChatId(chatId).ifPresent(user->{
+                    user.setActive(false);
+                    userService.updateUser(user);
+                });
+            }
             LOGGER.info(e.getMessage());
+            LOGGER.info(chatId + ": " + message );
         }
     }
 
@@ -60,7 +69,11 @@ public class SendMessageServiceImpl implements SendMessageService {
         try {
             messageId = telegramBot.execute(sendMessage).getMessageId();
             userService.saveMessage(new SentMessages(messageId, user, workout));
-        } catch (TelegramApiException  e) {
+        } catch (TelegramApiException e) {
+            if (e.getMessage().contains(ERROR_CODE_FORBIDDEN)) {
+                user.setActive(false);
+                userService.updateUser(user);
+            }
             LOGGER.info(e.getMessage());
             LOGGER.info(user + " " + workout.getTime());
             messageId = 0;
@@ -70,6 +83,7 @@ public class SendMessageServiceImpl implements SendMessageService {
     }
 
     @Override
+    @Synchronized
     public void editMessage(String chatId, Integer messageId, String message, InlineKeyboardMarkup keyBoard) {
         EditMessageText editMessage = new EditMessageText();
         editMessage.setChatId(chatId);
@@ -80,10 +94,10 @@ public class SendMessageServiceImpl implements SendMessageService {
         if (keyBoard != null)
             editMessage.setReplyMarkup(keyBoard);
         try {
-           telegramBot.execute(editMessage);
+            telegramBot.executeAsync(editMessage);
         } catch (TelegramApiException e) {
-           LOGGER.info(e.getMessage());
-           LOGGER.info(chatId + " " + messageId);
+            LOGGER.info(e.getMessage());
+            LOGGER.info(chatId + " " + messageId);
         }
     }
 

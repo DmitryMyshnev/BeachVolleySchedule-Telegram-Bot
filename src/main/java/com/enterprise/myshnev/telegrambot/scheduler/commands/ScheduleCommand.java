@@ -32,11 +32,15 @@ public class ScheduleCommand implements Command {
     @Override
     public void execute(Update update) {
         userService.findByChatId(getChatId(update))
-                .ifPresent(user -> {
+                .ifPresentOrElse(user -> {
                     if (user.isEqualsRole("COACH")) {
                         getWorkoutsForCoach(update);
                     } else {
                         getWorkoutsForUser(update);
+                    }
+                },()->{
+                    if(getChatId(update).equals(SUPER_ADMIN)){
+                        getWorkoutsForCoach(update);
                     }
                 });
     }
