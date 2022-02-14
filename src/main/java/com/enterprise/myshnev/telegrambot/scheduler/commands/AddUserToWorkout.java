@@ -1,10 +1,7 @@
 package com.enterprise.myshnev.telegrambot.scheduler.commands;
 
 import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
-import com.enterprise.myshnev.telegrambot.scheduler.model.NewWorkout;
-import com.enterprise.myshnev.telegrambot.scheduler.model.SentMessages;
-import com.enterprise.myshnev.telegrambot.scheduler.model.Statistic;
-import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
+import com.enterprise.myshnev.telegrambot.scheduler.model.*;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
@@ -198,6 +195,7 @@ public class AddUserToWorkout implements Command {
                         }
                     }
                 });
+
     }
 
     private NewWorkout createEntity(Update update, boolean reserve, SentMessages sentMessages, Workout workout) {
