@@ -16,11 +16,13 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getCallbackQuery;
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getChatId;
@@ -35,13 +37,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     public final Queue<Update> receiveQueue = new ConcurrentLinkedQueue<>();
     public final Queue<Message> notifyMessageId = new ConcurrentLinkedQueue<>();
     private static TelegramBot telegramBot;
-    public final AtomicReference<String> filterQuery = new AtomicReference<>();
-
+    public final Map<String,String> filterQuery = new HashMap<>();
+    private final SimpleDateFormat currentDay;
+   private  int countRequest = 0;
     @Autowired
     public TelegramBot(UserService userService, WorkoutService workoutService) {
 
         BOT_USER_NAME = SuperAdminUtils.getInstance().getBotConfigFromFile("botUserName".trim());
         TOKEN =  SuperAdminUtils.getInstance().getBotConfigFromFile("botToken".trim());
+        currentDay = new SimpleDateFormat("d.MM");
         CommandContainer commandContainer = new CommandContainer(new SendMessageServiceImpl(this, userService), userService, workoutService);
         receiveMessage = new ReceiveMessage(this, commandContainer);
         Thread receiver = new Thread(receiveMessage);
@@ -66,9 +70,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         String chatId = getChatId(update);
         if (update.hasCallbackQuery()) {
-            if (filterQuery.get() != null) {
-                if (!filterQuery.toString().equals(getChatId(update) + getCallbackQuery(update))) {
-                    filterQuery.set(getChatId(update) + getCallbackQuery(update));
+            String callback = getCallbackQuery(update);
+            String data = currentDay.format(System.currentTimeMillis()) + ":";
+            if (filterQuery.containsKey(getChatId(update))) {
+                if (!filterQuery.get(getChatId(update)).equals(data + callback)){
+                    filterQuery.put(getChatId(update), data + callback);
                     Objects.requireNonNull(sendSystemMessage(chatId)).thenAccept(res -> {
                         if (res != null) {
                             notifyMessageId.add(res);
@@ -77,7 +83,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     });
                 }
             } else {
-                filterQuery.set(getChatId(update) + getCallbackQuery(update));
+                filterQuery.put(getChatId(update), data + callback);
                 Objects.requireNonNull(sendSystemMessage(chatId)).thenAccept(res -> {
                     if (res != null) {
                         notifyMessageId.add(res);

@@ -54,6 +54,7 @@ public class StopTimerTack {
                                 sendMessageService.deleteWorkoutMessage(sentMessages.getUser().getId(), sentMessages);
                         });
                     });
+
             workout.setActive(false);
             workoutService.updateWorkout(workout);
 
