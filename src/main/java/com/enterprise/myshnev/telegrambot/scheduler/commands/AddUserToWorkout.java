@@ -8,6 +8,8 @@ import com.enterprise.myshnev.telegrambot.scheduler.model.Workout;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -42,6 +44,7 @@ public class AddUserToWorkout implements Command {
     private List<NewWorkout> workoutList;
     private String coachChatId;
     private Workout workout;
+    private Logger LOGGER = LogManager.getLogger(AddUserToWorkout.class);
 
     public AddUserToWorkout(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
@@ -56,15 +59,6 @@ public class AddUserToWorkout implements Command {
 
     @Override
     public void execute(Update update) {
-        dayOfWeek = Objects.requireNonNull(getCallbackQuery(update)).split("/")[1];
-        timeOfWorkout = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
-        String workoutTableName = dayOfWeek + timeOfWorkout;
-        workout = workoutService.findWorkoutByTime(dayOfWeek, timeOfWorkout);
-        maxSize = workout.getMaxCountUser();
-        userService.findUsersByRole("COACH").stream()
-                .findFirst().ifPresent(coach -> coachChatId = coach.getId());
-        String command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[3];
-
         if (!TelegramBot.getInstance().notifyMessageId.isEmpty()) {
             Message msg = Objects.requireNonNull(TelegramBot.getInstance().notifyMessageId.poll());
             boolean complete = sendMessageService.deleteMessage(getChatId(update), msg.getMessageId());
@@ -72,6 +66,19 @@ public class AddUserToWorkout implements Command {
                 sendMessageService.deleteMessage(msg.getChatId().toString(), msg.getMessageId());
             }
         }
+        dayOfWeek = Objects.requireNonNull(getCallbackQuery(update)).split("/")[1];
+        timeOfWorkout = Objects.requireNonNull(getCallbackQuery(update)).split("/")[2];
+        String workoutTableName = dayOfWeek + timeOfWorkout;
+        workout = workoutService.findWorkoutByTime(dayOfWeek, timeOfWorkout);
+        if (workout == null) {
+            LOGGER.info("Workout " + dayOfWeek + " " + timeOfWorkout + " is not found");
+            return;
+        }
+        maxSize = workout.getMaxCountUser();
+        userService.findUsersByRole("COACH").stream()
+                .findFirst().ifPresent(coach -> coachChatId = coach.getId());
+        String command = Objects.requireNonNull(getCallbackQuery(update)).split("/")[3];
+
         if (!validWorkout(workoutTableName, getMessageId(update))) {
             return;
         }

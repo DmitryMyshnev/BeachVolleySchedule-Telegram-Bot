@@ -17,9 +17,6 @@ public class NewWorkout {
     private String firstName;
     @Column(name = "last_name")
     private String lastName;
-    //@Column(name = "day_of_week")
-    //private String dayOfWeek;
-    //private String time;
     private boolean reserve;
     @OneToOne(fetch = FetchType.EAGER)
     private Workout workout;
