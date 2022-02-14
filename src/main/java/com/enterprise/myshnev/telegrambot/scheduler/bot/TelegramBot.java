@@ -1,9 +1,7 @@
 package com.enterprise.myshnev.telegrambot.scheduler.bot;
 
 import com.enterprise.myshnev.telegrambot.scheduler.commands.CommandContainer;
-import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdmin;
 import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
-import com.enterprise.myshnev.telegrambot.scheduler.db.ConnectionDb;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.ReceiveMessage;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.messages.SendMessageServiceImpl;
 import com.enterprise.myshnev.telegrambot.scheduler.servises.user.UserService;
@@ -25,7 +23,6 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getCallbackQuery;
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandUtils.getChatId;
@@ -49,7 +46,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         BOT_USER_NAME = SuperAdminUtils.getInstance().getBotConfigFromFile("botUserName".trim());
         TOKEN =  SuperAdminUtils.getInstance().getBotConfigFromFile("botToken".trim());
         currentDay = new SimpleDateFormat("d.MM");
-        new ConnectionDb();
         CommandContainer commandContainer = new CommandContainer(new SendMessageServiceImpl(this, userService), userService, workoutService);
         receiveMessage = new ReceiveMessage(this, commandContainer);
         Thread receiver = new Thread(receiveMessage);
