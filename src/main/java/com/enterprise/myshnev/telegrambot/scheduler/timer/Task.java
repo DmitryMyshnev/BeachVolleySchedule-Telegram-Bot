@@ -1,5 +1,6 @@
 package com.enterprise.myshnev.telegrambot.scheduler.timer;
 
+import com.enterprise.myshnev.telegrambot.scheduler.bot.TelegramBot;
 import com.enterprise.myshnev.telegrambot.scheduler.commands.SuperAdminUtils;
 import com.enterprise.myshnev.telegrambot.scheduler.commands.Symbols;
 import com.enterprise.myshnev.telegrambot.scheduler.model.TelegramUser;
@@ -10,16 +11,17 @@ import com.enterprise.myshnev.telegrambot.scheduler.servises.workout.WorkoutServ
 import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.enterprise.myshnev.telegrambot.scheduler.commands.CommandName.ENJOY;
 import static com.enterprise.myshnev.telegrambot.scheduler.keyboard.InlineKeyBoard.builder;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.*;
 
 public class Task extends TimerTask {
 
@@ -49,6 +51,7 @@ public class Task extends TimerTask {
     private boolean editAllowed = false;
     public static Logger LOGGER = LogManager.getLogger(Task.class);
     private final WorkoutComparator workoutComparator;
+    private final AtomicInteger countWorkoutPerDay;
 
     public Task(SendMessageService sendMessageService, UserService userService, WorkoutService workoutService) {
         this.sendMessageService = sendMessageService;
@@ -58,6 +61,7 @@ public class Task extends TimerTask {
         formatOfWeek = new SimpleDateFormat("u");
         formatOfHour = new SimpleDateFormat("H:mm");
         workoutComparator = new WorkoutComparator();
+        countWorkoutPerDay = new AtomicInteger(0);
     }
 
     @Override
@@ -68,28 +72,30 @@ public class Task extends TimerTask {
         if (formatOfHour.format(System.currentTimeMillis()).equals(HOUR_OF_NOTIFICATION)) {
             workouts.forEach(workout -> {
                 int dayOfNotification = (WEEK.get(workout.getDayOfWeek()) - 1) == 0 ? 7 : WEEK.get(workout.getDayOfWeek()) - 1;
-                 //int dayOfNotification = WEEK.get(workout.getDayOfWeek());
+                //int dayOfNotification = WEEK.get(workout.getDayOfWeek());
 
                 if (Integer.parseInt(currentDayOfWeek) == dayOfNotification) {
-                    workout.setActive(true);
-                    workoutService.updateWorkout(workout);
-                    createNotification(workout);
-                    editAllowed = true;
+                    if (countWorkoutPerDay.get() == 0) {
+                        workout.setActive(true);
+                        workoutService.updateWorkout(workout);
+                        createNotification(workout);
+                        updateWorkoutMessage(workout);
+                        countWorkoutPerDay.getAndIncrement();
+                    } else {
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(MINUTES.toMillis(30));
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            workout.setActive(true);
+                            workoutService.updateWorkout(workout);
+                            createNotification(workout);
+                            updateWorkoutMessage(workout);
+                        }).start();
+                    }
                 }
             });
-            if (editAllowed) {
-                workouts.forEach(workout -> {
-                    String message = createMessage(workout);
-                    String callback = ENJOY.getCommandName() + "/" + workout.getDayOfWeek() + "/" + workout.getTime() + "/join";
-                    userService.findByWorkoutId(workout.getId()).forEach(sentMessages -> {
-                        if (sentMessages.getUser().isEqualsRole("USER")) {
-                            board = builder().add("Записаться", callback).create();
-                            sendMessageService.editMessage(sentMessages.getUser().getId(), sentMessages.getMessageId(), message, board);
-                        }
-                    });
-                });
-                editAllowed = false;
-            }
         }
 
         workouts.forEach(w -> {
@@ -97,9 +103,11 @@ public class Task extends TimerTask {
             if (w.isActive()) {
                 if (Integer.parseInt(currentDayOfWeek) == dayOfWorkout && formatOfHour.format(System.currentTimeMillis() + HOURS.toMillis(1)).equals(w.getTime())) {
                     stopTimerTack.breakWorkout(w);
+                    TelegramBot.getInstance().filterQuery.clear();
                 }
             }
         });
+        countWorkoutPerDay.set(0);
     }
 
     private void createNotification(Workout workout) {
@@ -124,11 +132,36 @@ public class Task extends TimerTask {
         return "Запись на тренировку в " + date + " в <strong>" + workout.getTime() + "</strong> открыта!\n " +
                 "Количество свободных мест: " + Symbols.getSymbol(workout.getMaxCountUser());
     }
+
+    private void updateWorkoutMessage(Workout workout){
+        String message = createMessage(workout);
+        String callback = ENJOY.getCommandName() + "/" + workout.getDayOfWeek() + "/" + workout.getTime() + "/join";
+        userService.findByWorkoutId(workout.getId()).forEach(sentMessages -> {
+            if (sentMessages.getUser().isEqualsRole("USER")) {
+                board = builder().add("Записаться", callback).create();
+                sendMessageService.editMessage(sentMessages.getUser().getId(), sentMessages.getMessageId(), message, board);
+            }
+        });
+    }
 }
 
 class WorkoutComparator implements Comparator<Workout> {
     @Override
     public int compare(Workout w1, Workout w2) {
         return w1.getTime().compareTo(w2.getTime());
+    }
+}
+class SeparationWorkout implements Runnable{
+    private Workout workout;
+    @Autowired
+    private WorkoutService workoutService;
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(MINUTES.toMillis(1));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 }

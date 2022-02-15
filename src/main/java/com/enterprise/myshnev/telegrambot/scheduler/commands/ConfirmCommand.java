@@ -53,6 +53,7 @@ public class ConfirmCommand implements Command {
             sendMessageService.deleteMessage(getChatId(update), getMessageId(update));
             workoutService.findAllJoinedUsers(workoutId).forEach(workoutService::deleteNewWorkout);
             sendMessageForAllUsers(workoutId);
+            TelegramBot.getInstance().filterQuery.clear();
         } else {
             long maxSize = workout.getMaxCountUser();
             List<NewWorkout> listUsers = workoutService.findAllJoinedUsers(workoutId);
